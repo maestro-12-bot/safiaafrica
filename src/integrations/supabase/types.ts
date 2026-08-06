@@ -14,7 +14,111 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      orders: {
+        Row: {
+          address: string
+          artwork_type: string | null
+          collection: string
+          color: string | null
+          company_name: string | null
+          country: string
+          created_at: string
+          currency: string
+          custom_size: string | null
+          customer_name: string
+          district: string | null
+          email: string
+          finish: string | null
+          frame_type: string | null
+          id: string
+          material: string | null
+          notes: string | null
+          order_number: string
+          orientation: string | null
+          phone: string
+          postal_code: string | null
+          product_name: string
+          province: string | null
+          quantity: number
+          shipping: number
+          size_code: string
+          status: string
+          subtotal: number
+          tax: number
+          total: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          artwork_type?: string | null
+          collection: string
+          color?: string | null
+          company_name?: string | null
+          country: string
+          created_at?: string
+          currency?: string
+          custom_size?: string | null
+          customer_name: string
+          district?: string | null
+          email: string
+          finish?: string | null
+          frame_type?: string | null
+          id?: string
+          material?: string | null
+          notes?: string | null
+          order_number: string
+          orientation?: string | null
+          phone: string
+          postal_code?: string | null
+          product_name: string
+          province?: string | null
+          quantity?: number
+          shipping?: number
+          size_code: string
+          status?: string
+          subtotal?: number
+          tax?: number
+          total?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          artwork_type?: string | null
+          collection?: string
+          color?: string | null
+          company_name?: string | null
+          country?: string
+          created_at?: string
+          currency?: string
+          custom_size?: string | null
+          customer_name?: string
+          district?: string | null
+          email?: string
+          finish?: string | null
+          frame_type?: string | null
+          id?: string
+          material?: string | null
+          notes?: string | null
+          order_number?: string
+          orientation?: string | null
+          phone?: string
+          postal_code?: string | null
+          product_name?: string
+          province?: string | null
+          quantity?: number
+          shipping?: number
+          size_code?: string
+          status?: string
+          subtotal?: number
+          tax?: number
+          total?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
