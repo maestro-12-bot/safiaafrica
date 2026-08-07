@@ -11,10 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as HeritageRouteImport } from './routes/heritage'
+import { Route as OrderRouteImport } from './routes/order'
 import { Route as TrackRouteImport } from './routes/track'
 
 const IndexRoute = IndexRouteImport.update({
@@ -25,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CollectionsRoute = CollectionsRouteImport.update({
@@ -47,6 +54,11 @@ const HeritageRoute = HeritageRouteImport.update({
   path: '/heritage',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrderRoute = OrderRouteImport.update({
+  id: '/order',
+  path: '/order',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
   path: '/track',
@@ -56,29 +68,35 @@ const TrackRoute = TrackRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/collections': typeof CollectionsRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/heritage': typeof HeritageRoute
+  '/order': typeof OrderRoute
   '/track': typeof TrackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/collections': typeof CollectionsRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/heritage': typeof HeritageRoute
+  '/order': typeof OrderRoute
   '/track': typeof TrackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
   '/collections': typeof CollectionsRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/heritage': typeof HeritageRoute
+  '/order': typeof OrderRoute
   '/track': typeof TrackRoute
 }
 export interface FileRouteTypes {
@@ -86,38 +104,46 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/admin'
     | '/collections'
     | '/contact'
     | '/gallery'
     | '/heritage'
+    | '/order'
     | '/track'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
+    | '/admin'
     | '/collections'
     | '/contact'
     | '/gallery'
     | '/heritage'
+    | '/order'
     | '/track'
   id:
     | '__root__'
     | '/'
     | '/about'
+    | '/admin'
     | '/collections'
     | '/contact'
     | '/gallery'
     | '/heritage'
+    | '/order'
     | '/track'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AdminRoute: typeof AdminRoute
   CollectionsRoute: typeof CollectionsRoute
   ContactRoute: typeof ContactRoute
   GalleryRoute: typeof GalleryRoute
   HeritageRoute: typeof HeritageRoute
+  OrderRoute: typeof OrderRoute
   TrackRoute: typeof TrackRoute
 }
 
@@ -135,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collections': {
@@ -165,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HeritageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/order': {
+      id: '/order'
+      path: '/order'
+      fullPath: '/order'
+      preLoaderRoute: typeof OrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/track': {
       id: '/track'
       path: '/track'
@@ -178,12 +218,24 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AdminRoute: AdminRoute,
   CollectionsRoute: CollectionsRoute,
   ContactRoute: ContactRoute,
   GalleryRoute: GalleryRoute,
   HeritageRoute: HeritageRoute,
+  OrderRoute: OrderRoute,
   TrackRoute: TrackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
