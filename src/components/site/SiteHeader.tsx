@@ -8,8 +8,10 @@ const LINKS = [
   { to: "/collections", label: "Collections" },
   { to: "/heritage", label: "Heritage" },
   { to: "/gallery", label: "Gallery" },
+  { to: "/order", label: "Order" },
   { to: "/track", label: "Track Order" },
   { to: "/contact", label: "Contact" },
+
 ] as const;
 
 export function SiteHeader() {
