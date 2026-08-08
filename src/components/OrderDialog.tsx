@@ -495,6 +495,10 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
                     {price.discount > 0 && (
                       <Row label="Volume discount" value={`− ${formatRWF(price.discount)}`} />
                     )}
+                    {price.services.map((s) => (
+                      <Row key={s.id} label={s.label} value={formatRWF(s.amount)} />
+                    ))}
+
                     <Row label="Subtotal" value={formatRWF(price.subtotal)} />
                     <Row label="VAT (18%)" value={formatRWF(price.tax)} />
                     <Row label="Shipping" value={formatRWF(price.shipping)} />
