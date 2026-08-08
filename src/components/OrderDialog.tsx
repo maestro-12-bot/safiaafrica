@@ -95,7 +95,9 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
   const [material, setMaterial] = useState(MATERIAL_OPTIONS[0]!.id);
   const [finish, setFinish] = useState(FINISH_OPTIONS[0]!.id);
   const [color, setColor] = useState(COLOR_OPTIONS[0]!);
-  const [orientation, setOrientation] = useState(ORIENTATION_OPTIONS[0]!);
+  const [orientation, setOrientation] = useState<string>(ORIENTATION_OPTIONS[0]!);
+  const [services, setServices] = useState<string[]>([]);
+
   const [shipping, setShipping] = useState(SHIPPING_OPTIONS[0]!.id);
   const [notes, setNotes] = useState("");
 
@@ -122,9 +124,24 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
         materialId: material,
         finishId: finish,
         shippingId: shipping,
+        productMultiplier: productMultiplier(product),
+        serviceIds: services,
       }),
-    [size, quantity, frame, material, finish, shipping],
+    [size, quantity, frame, material, finish, shipping, product, services],
   );
+
+  const advice = useMemo(
+    () =>
+      configurationAdvice({
+        product,
+        sizeCode: size,
+        frameId: frame,
+        finishId: finish,
+        materialId: material,
+      }),
+    [product, size, frame, finish, material],
+  );
+
 
   const tier = SIZE_TIERS.find((t) => t.code === size)!;
   const frameLabel = FRAME_OPTIONS.find((f) => f.id === frame)!.label;
