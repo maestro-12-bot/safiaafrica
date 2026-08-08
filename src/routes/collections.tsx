@@ -1,10 +1,23 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Star } from "lucide-react";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { Crown, Star } from "lucide-react";
 import { useState } from "react";
 
 import { OrderDialog } from "@/components/OrderDialog";
+import { ProductBadges } from "@/components/ProductBadges";
 import { Button } from "@/components/ui/button";
-import { MDF_TIERS, PRODUCTS, SIZE_TIERS, formatRWF, type Product } from "@/data/catalog";
+import {
+  LUXURY_PRODUCTS,
+  MDF_TIERS,
+  PRODUCTS,
+  SIZE_TIERS,
+  calculatePrice,
+  formatRWF,
+  type Product,
+} from "@/data/catalog";
+
+const A4_PRICE = SIZE_TIERS.find((t) => t.code === "A4")!.price!;
+const A0_PRICE = SIZE_TIERS.find((t) => t.code === "A0")!.price!;
+
 
 export const Route = createFileRoute("/collections")({
   head: () => ({
