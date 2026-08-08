@@ -162,7 +162,7 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
         data: {
           ...customer,
           productName: product.name,
-          collection: tier.collection,
+          collection: isLuxury(product) ? product.collection : tier.collection,
           artworkType: product.artworkType,
           sizeCode: size,
           customSize: size === "CUSTOM" ? customSize : "",
@@ -177,7 +177,16 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
           tax: price.tax,
           shipping: price.shipping,
           total: price.total,
-          notes: [notes, `Shipping: ${shippingLabel}`].filter(Boolean).join(" | "),
+          notes: [
+            notes,
+            `Shipping: ${shippingLabel}`,
+            price.services.length ? `Services: ${price.services.map((s) => s.label).join(", ")}` : "",
+            isLuxury(product) ? `Luxury tier: ${product.collection}` : "",
+          ]
+            .filter(Boolean)
+            .join(" | ")
+            .slice(0, 1200),
+
         },
       });
     },
