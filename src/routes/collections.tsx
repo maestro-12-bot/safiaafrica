@@ -31,7 +31,7 @@ export const Route = createFileRoute("/collections")({
       { property: "og:title", content: "SAFIA Africa Collections & Pricing" },
       {
         property: "og:description",
-        content: "Customise your heritage artwork with instant pricing from A6 to A0 presidential scale.",
+        content: "Customise your heritage artwork with instant pricing from A4 to A0 presidential scale.",
       },
     ],
   }),

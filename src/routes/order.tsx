@@ -55,7 +55,7 @@ function OrderPage() {
           </p>
           <ol className="mt-10 grid gap-6 sm:grid-cols-3">
             {[
-              ["01", "Choose a collection", "Six heritage series, A6 to A0 presidential scale."],
+              ["01", "Choose a collection", "Luxury and heritage series, A4 to A0 presidential scale."],
               ["02", "Customise & see the price", "Size, frame, material, finish, quantity, shipping."],
               ["03", "Get your order code", "Confirm and track your commission any time."],
             ].map(([n, t, d]) => (

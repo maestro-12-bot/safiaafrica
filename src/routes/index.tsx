@@ -33,7 +33,7 @@ const PILLARS = [
   {
     icon: Gem,
     title: "Luxury 3D Production",
-    body: "Museum-grade relief artwork from A6 collector editions to A0 presidential installations.",
+    body: "Museum-grade relief artwork from A4 premium editions to A0 presidential installations.",
   },
   {
     icon: Sparkles,
