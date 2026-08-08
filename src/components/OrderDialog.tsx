@@ -352,7 +352,39 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
                       <Selector value={shipping} onChange={setShipping} options={SHIPPING_OPTIONS} />
                     </Field>
                   </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label className="text-[10px] tracking-luxe text-muted-foreground">
+                      Optional services
+                    </Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {SERVICE_OPTIONS.map((s) => {
+                        const on = services.includes(s.id);
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            aria-pressed={on}
+                            onClick={() =>
+                              setServices((prev) =>
+                                prev.includes(s.id)
+                                  ? prev.filter((id) => id !== s.id)
+                                  : [...prev, s.id],
+                              )
+                            }
+                            className={`rounded-full border px-3 py-1 text-[10px] tracking-luxe transition-colors ${
+                              on
+                                ? "border-gold text-gold"
+                                : "border-border text-muted-foreground hover:border-gold/50"
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </section>
+
 
                 <section className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
