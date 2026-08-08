@@ -14,20 +14,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { MasterpiecePreview } from "@/components/MasterpiecePreview";
 import {
   COLOR_OPTIONS,
   FINISH_OPTIONS,
   FRAME_OPTIONS,
   MATERIAL_OPTIONS,
   ORIENTATION_OPTIONS,
+  SERVICE_OPTIONS,
   SHIPPING_OPTIONS,
   SIZE_TIERS,
   calculatePrice,
+  configurationAdvice,
   formatRWF,
+  isLuxury,
+  productMultiplier,
   type Product,
   type SizeCode,
 } from "@/data/catalog";
 import { createOrder } from "@/lib/orders.functions";
+
 
 interface Props {
   product: Product | null;
@@ -89,7 +95,9 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
   const [material, setMaterial] = useState(MATERIAL_OPTIONS[0]!.id);
   const [finish, setFinish] = useState(FINISH_OPTIONS[0]!.id);
   const [color, setColor] = useState(COLOR_OPTIONS[0]!);
-  const [orientation, setOrientation] = useState(ORIENTATION_OPTIONS[0]!);
+  const [orientation, setOrientation] = useState<string>(ORIENTATION_OPTIONS[0]!);
+  const [services, setServices] = useState<string[]>([]);
+
   const [shipping, setShipping] = useState(SHIPPING_OPTIONS[0]!.id);
   const [notes, setNotes] = useState("");
 
@@ -116,9 +124,24 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
         materialId: material,
         finishId: finish,
         shippingId: shipping,
+        productMultiplier: productMultiplier(product),
+        serviceIds: services,
       }),
-    [size, quantity, frame, material, finish, shipping],
+    [size, quantity, frame, material, finish, shipping, product, services],
   );
+
+  const advice = useMemo(
+    () =>
+      configurationAdvice({
+        product,
+        sizeCode: size,
+        frameId: frame,
+        finishId: finish,
+        materialId: material,
+      }),
+    [product, size, frame, finish, material],
+  );
+
 
   const tier = SIZE_TIERS.find((t) => t.code === size)!;
   const frameLabel = FRAME_OPTIONS.find((f) => f.id === frame)!.label;
@@ -139,7 +162,7 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
         data: {
           ...customer,
           productName: product.name,
-          collection: tier.collection,
+          collection: isLuxury(product) ? product.collection : tier.collection,
           artworkType: product.artworkType,
           sizeCode: size,
           customSize: size === "CUSTOM" ? customSize : "",
@@ -154,7 +177,16 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
           tax: price.tax,
           shipping: price.shipping,
           total: price.total,
-          notes: [notes, `Shipping: ${shippingLabel}`].filter(Boolean).join(" | "),
+          notes: [
+            notes,
+            `Shipping: ${shippingLabel}`,
+            price.services.length ? `Services: ${price.services.map((s) => s.label).join(", ")}` : "",
+            isLuxury(product) ? `Luxury tier: ${product.collection}` : "",
+          ]
+            .filter(Boolean)
+            .join(" | ")
+            .slice(0, 1200),
+
         },
       });
     },
@@ -209,18 +241,55 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
         ) : (
           <>
             <DialogHeader>
-              <p className="text-[10px] tracking-luxe text-gold">Customisation Studio</p>
+              <p className="text-[10px] tracking-luxe text-gold">
+                {isLuxury(product) ? "Luxury Customisation Studio" : "Customisation Studio"}
+              </p>
               <DialogTitle className="font-display text-3xl">{product.name}</DialogTitle>
+              {product.badges?.length ? (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {product.badges.map((b) => (
+                    <span
+                      key={b}
+                      className="rounded-full border border-gold/50 px-2.5 py-0.5 text-[9px] tracking-luxe text-gold"
+                    >
+                      {b}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
               <DialogDescription>
-                Configure your commission — pricing updates instantly from SAFIA&apos;s official
-                Rwanda luxury price list.
+                Configure your commission — the preview and pricing update instantly.
               </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr]">
               <div className="space-y-7">
+                <MasterpiecePreview
+                  config={{
+                    image: product.image,
+                    name: product.name,
+                    sizeCode: size,
+                    frameId: frame,
+                    materialId: material,
+                    finishId: finish,
+                    color,
+                    orientation,
+                  }}
+                />
+
+                {advice.length > 0 && (
+                  <ul className="space-y-1.5 rounded-lg border border-gold/25 bg-secondary/40 p-3">
+                    {advice.map((tip) => (
+                      <li key={tip} className="text-[11px] leading-relaxed text-muted-foreground">
+                        <span className="text-gold">·</span> {tip}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
                 <section className="space-y-3">
                   <p className="text-[10px] tracking-luxe text-gold">Size selection</p>
+
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {SIZE_TIERS.map((t) => (
                       <button
@@ -292,7 +361,39 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
                       <Selector value={shipping} onChange={setShipping} options={SHIPPING_OPTIONS} />
                     </Field>
                   </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label className="text-[10px] tracking-luxe text-muted-foreground">
+                      Optional services
+                    </Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {SERVICE_OPTIONS.map((s) => {
+                        const on = services.includes(s.id);
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            aria-pressed={on}
+                            onClick={() =>
+                              setServices((prev) =>
+                                prev.includes(s.id)
+                                  ? prev.filter((id) => id !== s.id)
+                                  : [...prev, s.id],
+                              )
+                            }
+                            className={`rounded-full border px-3 py-1 text-[10px] tracking-luxe transition-colors ${
+                              on
+                                ? "border-gold text-gold"
+                                : "border-border text-muted-foreground hover:border-gold/50"
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </section>
+
 
                 <section className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">
@@ -403,6 +504,10 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
                     {price.discount > 0 && (
                       <Row label="Volume discount" value={`− ${formatRWF(price.discount)}`} />
                     )}
+                    {price.services.map((s) => (
+                      <Row key={s.id} label={s.label} value={formatRWF(s.amount)} />
+                    ))}
+
                     <Row label="Subtotal" value={formatRWF(price.subtotal)} />
                     <Row label="VAT (18%)" value={formatRWF(price.tax)} />
                     <Row label="Shipping" value={formatRWF(price.shipping)} />

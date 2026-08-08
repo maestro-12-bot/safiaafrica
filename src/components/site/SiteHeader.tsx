@@ -5,7 +5,9 @@ import { useState } from "react";
 const LINKS = [
   { to: "/", label: "Home" },
   { to: "/about", label: "About" },
+  { to: "/luxury", label: "Luxury" },
   { to: "/collections", label: "Collections" },
+
   { to: "/heritage", label: "Heritage" },
   { to: "/gallery", label: "Gallery" },
   { to: "/order", label: "Order" },

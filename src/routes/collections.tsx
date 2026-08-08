@@ -1,10 +1,23 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Star } from "lucide-react";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { Crown, Star } from "lucide-react";
 import { useState } from "react";
 
 import { OrderDialog } from "@/components/OrderDialog";
+import { ProductBadges } from "@/components/ProductBadges";
 import { Button } from "@/components/ui/button";
-import { MDF_TIERS, PRODUCTS, SIZE_TIERS, formatRWF, type Product } from "@/data/catalog";
+import {
+  LUXURY_PRODUCTS,
+  MDF_TIERS,
+  PRODUCTS,
+  SIZE_TIERS,
+  calculatePrice,
+  formatRWF,
+  type Product,
+} from "@/data/catalog";
+
+const A4_PRICE = SIZE_TIERS.find((t) => t.code === "A4")!.price!;
+const A0_PRICE = SIZE_TIERS.find((t) => t.code === "A0")!.price!;
+
 
 export const Route = createFileRoute("/collections")({
   head: () => ({
@@ -18,7 +31,7 @@ export const Route = createFileRoute("/collections")({
       { property: "og:title", content: "SAFIA Africa Collections & Pricing" },
       {
         property: "og:description",
-        content: "Customise your heritage artwork with instant pricing from A6 to A0 presidential scale.",
+        content: "Customise your heritage artwork with instant pricing from A4 to A0 presidential scale.",
       },
     ],
   }),
@@ -50,8 +63,78 @@ function Collections() {
         </div>
       </section>
 
+      <section className="border-b border-gold/20 bg-card/20">
+        <div className="mx-auto max-w-7xl px-5 py-16 lg:px-10">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="inline-flex items-center gap-2 text-[10px] tracking-luxe text-gold">
+                <Crown className="size-3.5" /> Luxury Collection
+              </p>
+              <h2 className="mt-3 font-display text-4xl">Above the collections.</h2>
+              <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                Presidential, museum-grade, limited and one-of-one commissions — our most exclusive
+                tier, priced for institutions and collectors.
+              </p>
+            </div>
+            <Link
+              to="/luxury"
+              className="rounded-full border border-gold/50 px-5 py-2 text-[11px] tracking-luxe text-gold hover:bg-secondary"
+            >
+              Explore the Luxury Collection
+            </Link>
+          </div>
+
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {LUXURY_PRODUCTS.slice(0, 3).map((p) => (
+              <article
+                key={p.slug}
+                className="group overflow-hidden rounded-xl border border-gold/25 bg-background/40"
+              >
+                <div className="relative overflow-hidden">
+                  <img
+                    src={p.image}
+                    alt={`${p.name} — ${p.artworkType}`}
+                    loading="lazy"
+                    width={800}
+                    height={640}
+                    className="aspect-[5/4] w-full object-cover transition-transform duration-[1400ms] group-hover:scale-[1.05]"
+                  />
+                  <ProductBadges product={p} className="absolute left-3 top-3" />
+                </div>
+                <div className="p-5">
+                  <p className="text-[10px] tracking-luxe text-gold">{p.luxuryCategory}</p>
+                  <h3 className="mt-2 font-display text-2xl">{p.name}</h3>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    From{" "}
+                    {formatRWF(
+                      calculatePrice({
+                        sizeCode: "A4",
+                        quantity: 1,
+                        frameId: "gold-leaf",
+                        materialId: "mdf-3d",
+                        finishId: "matte",
+                        shippingId: "kigali",
+                        productMultiplier: p.priceMultiplier ?? 1,
+                      }).unitPrice,
+                    )}
+                  </p>
+                  <Button
+                    onClick={() => order(p)}
+                    className="mt-4 w-full bg-sunset text-primary-foreground hover:opacity-90"
+                  >
+                    Commission
+                  </Button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-7xl px-5 py-20 lg:px-10">
+        <h2 className="mb-10 font-display text-4xl">Heritage collections</h2>
         <div className="grid gap-10 md:grid-cols-2">
+
           {PRODUCTS.map((p) => (
             <article
               key={p.slug}
@@ -98,8 +181,8 @@ function Collections() {
                     Order Now
                   </Button>
                   <span className="text-xs text-muted-foreground">
-                    From {formatRWF(SIZE_TIERS[6]!.price!)} · up to{" "}
-                    {formatRWF(SIZE_TIERS[0]!.price!)}
+                    From {formatRWF(A4_PRICE)} · up to{" "}
+                    {formatRWF(A0_PRICE)}
                   </span>
                 </div>
               </div>
