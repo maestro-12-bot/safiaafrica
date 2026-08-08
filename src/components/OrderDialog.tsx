@@ -14,20 +14,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { MasterpiecePreview } from "@/components/MasterpiecePreview";
 import {
   COLOR_OPTIONS,
   FINISH_OPTIONS,
   FRAME_OPTIONS,
   MATERIAL_OPTIONS,
   ORIENTATION_OPTIONS,
+  SERVICE_OPTIONS,
   SHIPPING_OPTIONS,
   SIZE_TIERS,
   calculatePrice,
+  configurationAdvice,
   formatRWF,
+  isLuxury,
+  productMultiplier,
   type Product,
   type SizeCode,
 } from "@/data/catalog";
 import { createOrder } from "@/lib/orders.functions";
+
 
 interface Props {
   product: Product | null;
