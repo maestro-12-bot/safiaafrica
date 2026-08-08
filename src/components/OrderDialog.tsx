@@ -232,18 +232,55 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
         ) : (
           <>
             <DialogHeader>
-              <p className="text-[10px] tracking-luxe text-gold">Customisation Studio</p>
+              <p className="text-[10px] tracking-luxe text-gold">
+                {isLuxury(product) ? "Luxury Customisation Studio" : "Customisation Studio"}
+              </p>
               <DialogTitle className="font-display text-3xl">{product.name}</DialogTitle>
+              {product.badges?.length ? (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {product.badges.map((b) => (
+                    <span
+                      key={b}
+                      className="rounded-full border border-gold/50 px-2.5 py-0.5 text-[9px] tracking-luxe text-gold"
+                    >
+                      {b}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
               <DialogDescription>
-                Configure your commission — pricing updates instantly from SAFIA&apos;s official
-                Rwanda luxury price list.
+                Configure your commission — the preview and pricing update instantly.
               </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr]">
               <div className="space-y-7">
+                <MasterpiecePreview
+                  config={{
+                    image: product.image,
+                    name: product.name,
+                    sizeCode: size,
+                    frameId: frame,
+                    materialId: material,
+                    finishId: finish,
+                    color,
+                    orientation,
+                  }}
+                />
+
+                {advice.length > 0 && (
+                  <ul className="space-y-1.5 rounded-lg border border-gold/25 bg-secondary/40 p-3">
+                    {advice.map((tip) => (
+                      <li key={tip} className="text-[11px] leading-relaxed text-muted-foreground">
+                        <span className="text-gold">·</span> {tip}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
                 <section className="space-y-3">
                   <p className="text-[10px] tracking-luxe text-gold">Size selection</p>
+
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {SIZE_TIERS.map((t) => (
                       <button
