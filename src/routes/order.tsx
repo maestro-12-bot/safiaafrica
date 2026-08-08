@@ -72,10 +72,12 @@ function OrderPage() {
       <section className="mx-auto max-w-5xl px-5 py-20 lg:px-10">
         <h2 className="font-display text-3xl">Select your collection</h2>
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
-          {PRODUCTS.map((p) => (
+          {ALL_PRODUCTS.map((p: Product) => (
             <article
               key={p.slug}
-              className="flex gap-5 rounded-xl border border-border bg-card/40 p-5"
+              className={`flex gap-5 rounded-xl border bg-card/40 p-5 ${
+                p.tier === "luxury" ? "border-gold/30" : "border-border"
+              }`}
             >
               <img
                 src={p.image}
@@ -88,9 +90,22 @@ function OrderPage() {
               <div className="min-w-0">
                 <p className="text-[10px] tracking-luxe text-gold">{p.collection}</p>
                 <h3 className="mt-1 font-display text-2xl">{p.name}</h3>
+                <ProductBadges product={p} className="mt-2" />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  From {formatRWF(SIZE_TIERS[6]!.price!)}
+                  From{" "}
+                  {formatRWF(
+                    calculatePrice({
+                      sizeCode: "A4",
+                      quantity: 1,
+                      frameId: "frameless",
+                      materialId: "mdf-3d",
+                      finishId: "matte",
+                      shippingId: "kigali",
+                      productMultiplier: p.priceMultiplier ?? 1,
+                    }).unitPrice || A4_PRICE,
+                  )}
                 </p>
+
                 <Button
                   onClick={() => start(p)}
                   className="mt-4 bg-sunset text-primary-foreground hover:opacity-90"
