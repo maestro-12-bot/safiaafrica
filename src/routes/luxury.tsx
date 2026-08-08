@@ -44,7 +44,7 @@ function fromPrice(p: Product) {
     materialId: "mdf-3d",
     finishId: "matte",
     shippingId: "kigali",
-    productMultiplier: p.priceMultiplier,
+    productMultiplier: p.priceMultiplier ?? 1,
   });
   return price.unitPrice;
 }
@@ -57,7 +57,7 @@ function topPrice(p: Product) {
     materialId: "brass-inlay",
     finishId: "gilded",
     shippingId: "kigali",
-    productMultiplier: p.priceMultiplier,
+    productMultiplier: p.priceMultiplier ?? 1,
   });
   return price.unitPrice;
 }
