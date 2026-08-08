@@ -181,8 +181,8 @@ function Collections() {
                     Order Now
                   </Button>
                   <span className="text-xs text-muted-foreground">
-                    From {formatRWF(SIZE_TIERS[6]!.price!)} · up to{" "}
-                    {formatRWF(SIZE_TIERS[0]!.price!)}
+                    From {formatRWF(A4_PRICE)} · up to{" "}
+                    {formatRWF(A0_PRICE)}
                   </span>
                 </div>
               </div>
