@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { COUNTRIES, REGIONS, type Region } from "@/data/africa";
 import { useLocale } from "@/lib/locale";
 
-export const Route = createFileRoute("/countries")({
+export const Route = createFileRoute("/countries/")({
   head: () => ({
     meta: [
       { title: "54 African Countries — Heritage, Craft & Commissions | SAFIA Africa" },
