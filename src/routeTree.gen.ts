@@ -20,6 +20,7 @@ import { Route as LuxuryRouteImport } from './routes/luxury'
 import { Route as OrderRouteImport } from './routes/order'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as CountriesIndexRouteImport } from './routes/countries.index'
+import { Route as CountriesCodeRouteImport } from './routes/countries.$code'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,6 +77,11 @@ const CountriesIndexRoute = CountriesIndexRouteImport.update({
   path: '/countries/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CountriesCodeRoute = CountriesCodeRouteImport.update({
+  id: '/countries/$code',
+  path: '/countries/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/luxury': typeof LuxuryRoute
   '/order': typeof OrderRoute
   '/track': typeof TrackRoute
+  '/countries/$code': typeof CountriesCodeRoute
   '/countries/': typeof CountriesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/luxury': typeof LuxuryRoute
   '/order': typeof OrderRoute
   '/track': typeof TrackRoute
+  '/countries/$code': typeof CountriesCodeRoute
   '/countries': typeof CountriesIndexRoute
 }
 export interface FileRoutesById {
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/luxury': typeof LuxuryRoute
   '/order': typeof OrderRoute
   '/track': typeof TrackRoute
+  '/countries/$code': typeof CountriesCodeRoute
   '/countries/': typeof CountriesIndexRoute
 }
 export interface FileRouteTypes {
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/luxury'
     | '/order'
     | '/track'
+    | '/countries/$code'
     | '/countries/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/luxury'
     | '/order'
     | '/track'
+    | '/countries/$code'
     | '/countries'
   id:
     | '__root__'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/luxury'
     | '/order'
     | '/track'
+    | '/countries/$code'
     | '/countries/'
   fileRoutesById: FileRoutesById
 }
@@ -170,6 +182,7 @@ export interface RootRouteChildren {
   LuxuryRoute: typeof LuxuryRoute
   OrderRoute: typeof OrderRoute
   TrackRoute: typeof TrackRoute
+  CountriesCodeRoute: typeof CountriesCodeRoute
   CountriesIndexRoute: typeof CountriesIndexRoute
 }
 
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CountriesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/countries/$code': {
+      id: '/countries/$code'
+      path: '/countries/$code'
+      fullPath: '/countries/$code'
+      preLoaderRoute: typeof CountriesCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -266,6 +286,7 @@ const rootRouteChildren: RootRouteChildren = {
   LuxuryRoute: LuxuryRoute,
   OrderRoute: OrderRoute,
   TrackRoute: TrackRoute,
+  CountriesCodeRoute: CountriesCodeRoute,
   CountriesIndexRoute: CountriesIndexRoute,
 }
 export const routeTree = rootRouteImport
