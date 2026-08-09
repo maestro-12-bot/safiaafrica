@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Toaster } from "@/components/ui/sonner";
+import { LocaleProvider } from "@/lib/locale";
 
 function NotFoundComponent() {
   return (
@@ -124,15 +125,17 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-background">
-        <SiteHeader />
-        <main className="pt-16">
-          {/* Required: nested routes render here. */}
-          <Outlet />
-        </main>
-        <SiteFooter />
-      </div>
-      <Toaster />
+      <LocaleProvider>
+        <div className="min-h-screen bg-background">
+          <SiteHeader />
+          <main className="pt-16">
+            {/* Required: nested routes render here. */}
+            <Outlet />
+          </main>
+          <SiteFooter />
+        </div>
+        <Toaster />
+      </LocaleProvider>
     </QueryClientProvider>
   );
 }

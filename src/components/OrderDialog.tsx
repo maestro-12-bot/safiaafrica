@@ -26,13 +26,13 @@ import {
   SIZE_TIERS,
   calculatePrice,
   configurationAdvice,
-  formatRWF,
   isLuxury,
   productMultiplier,
   type Product,
   type SizeCode,
 } from "@/data/catalog";
 import { createOrder } from "@/lib/orders.functions";
+import { useLocale } from "@/lib/locale";
 
 
 interface Props {
@@ -88,6 +88,7 @@ function Selector({
 }
 
 export function OrderDialog({ product, open, onOpenChange }: Props) {
+  const { money } = useLocale();
   const [size, setSize] = useState<SizeCode>("A3");
   const [customSize, setCustomSize] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -500,22 +501,22 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
 
                 {price.quotable ? (
                   <dl className="space-y-2 text-sm">
-                    <Row label="Unit price" value={formatRWF(price.unitPrice)} strong />
+                    <Row label="Unit price" value={money(price.unitPrice)} strong />
                     {price.discount > 0 && (
-                      <Row label="Volume discount" value={`− ${formatRWF(price.discount)}`} />
+                      <Row label="Volume discount" value={`− ${money(price.discount)}`} />
                     )}
                     {price.services.map((s) => (
-                      <Row key={s.id} label={s.label} value={formatRWF(s.amount)} />
+                      <Row key={s.id} label={s.label} value={money(s.amount)} />
                     ))}
 
-                    <Row label="Subtotal" value={formatRWF(price.subtotal)} />
-                    <Row label="VAT (18%)" value={formatRWF(price.tax)} />
-                    <Row label="Shipping" value={formatRWF(price.shipping)} />
+                    <Row label="Subtotal" value={money(price.subtotal)} />
+                    <Row label="VAT (18%)" value={money(price.tax)} />
+                    <Row label="Shipping" value={money(price.shipping)} />
                     <div className="my-3 hairline" />
                     <div className="flex items-baseline justify-between">
                       <span className="text-[10px] tracking-luxe text-muted-foreground">Total</span>
                       <span className="font-display text-2xl text-gold">
-                        {formatRWF(price.total)}
+                        {money(price.total)}
                       </span>
                     </div>
                   </dl>
