@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatRWF } from "@/data/catalog";
+import { useLocale } from "@/lib/locale";
 import { adminLogin, adminLogout, adminSessionStatus, listOrders, updateOrderStatus } from "@/lib/admin.functions";
 import {
   adminFeatureArtisan,
@@ -137,6 +138,7 @@ function LoginCard({ onSignedIn }: { onSignedIn: () => void }) {
 
 function Dashboard({ onSignedOut }: { onSignedOut: () => void }) {
   const qc = useQueryClient();
+  const { t } = useLocale();
   const [tab, setTab] = useState<Tab>("overview");
   const logout = useMutation({ mutationFn: () => adminLogout(), onSuccess: onSignedOut });
 
@@ -148,17 +150,17 @@ function Dashboard({ onSignedOut }: { onSignedOut: () => void }) {
           <h1 className="mt-3 font-display text-4xl">Platform management</h1>
         </div>
         <Button variant="outline" onClick={() => logout.mutate()}>
-          <LogOut className="mr-2 size-4" /> Sign out
+          <LogOut className="mr-2 size-4" /> {t("portal.signout")}
         </Button>
       </div>
 
       <nav className="mt-8 flex flex-wrap gap-1.5 border-b border-border pb-3">
         {([
-          ["overview", "Overview"],
-          ["orders", "Orders"],
-          ["artisans", "Artisans"],
-          ["products", "Products"],
-          ["withdrawals", "Withdrawals"],
+          ["overview", t("portal.overview")],
+          ["orders", t("portal.orders")],
+          ["artisans", t("portal.artisans")],
+          ["products", t("portal.products")],
+          ["withdrawals", t("portal.withdrawals")],
         ] as [Tab, string][]).map(([id, label]) => (
           <button
             key={id}

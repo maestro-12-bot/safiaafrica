@@ -32,6 +32,8 @@ export type TranslationKey =
   | "nav.order"
   | "nav.track"
   | "nav.contact"
+  | "nav.artisan"
+  | "nav.admin"
   | "cta.order"
   | "label.language"
   | "label.currency"
@@ -39,7 +41,18 @@ export type TranslationKey =
   | "countries.subtitle"
   | "countries.search"
   | "countries.all"
-  | "countries.explore";
+  | "countries.explore"
+  | "portal.dashboard"
+  | "portal.products"
+  | "portal.earnings"
+  | "portal.advertising"
+  | "portal.profile"
+  | "portal.overview"
+  | "portal.orders"
+  | "portal.artisans"
+  | "portal.withdrawals"
+  | "portal.signout"
+  | "portal.welcome";
 
 type Dict = Partial<Record<TranslationKey, string>>;
 
@@ -63,6 +76,19 @@ const en: Record<TranslationKey, string> = {
   "countries.search": "Search a country",
   "countries.all": "All regions",
   "countries.explore": "Explore",
+  "nav.artisan": "Artisan Portal",
+  "nav.admin": "Admin",
+  "portal.dashboard": "Dashboard",
+  "portal.products": "Products",
+  "portal.earnings": "Earnings",
+  "portal.advertising": "Advertising",
+  "portal.profile": "Profile",
+  "portal.overview": "Overview",
+  "portal.orders": "Orders",
+  "portal.artisans": "Artisans",
+  "portal.withdrawals": "Withdrawals",
+  "portal.signout": "Sign out",
+  "portal.welcome": "Welcome",
 };
 
 export const TRANSLATIONS: Record<string, Dict> = {
@@ -85,6 +111,19 @@ export const TRANSLATIONS: Record<string, Dict> = {
     "countries.explore": "Reba",
     "countries.all": "Uturere twose",
     "countries.search": "Shakisha igihugu",
+    "nav.artisan": "Umuhanga",
+    "nav.admin": "Ubuyobozi",
+    "portal.dashboard": "Ikibaho",
+    "portal.products": "Ibikoresho",
+    "portal.earnings": "Inyungu",
+    "portal.advertising": "Ikwamamaza",
+    "portal.profile": "Umwirondoro",
+    "portal.overview": "Irebera",
+    "portal.orders": "Amabwiriza",
+    "portal.artisans": "Abahanga",
+    "portal.withdrawals": "Gukura amafaranga",
+    "portal.signout": "Sohoka",
+    "portal.welcome": "Murakaza neza",
   },
   sw: {
     "nav.home": "Nyumbani",
@@ -104,6 +143,19 @@ export const TRANSLATIONS: Record<string, Dict> = {
     "countries.explore": "Chunguza",
     "countries.all": "Mikoa yote",
     "countries.search": "Tafuta nchi",
+    "nav.artisan": "Lango wa Mfundi",
+    "nav.admin": "Msimamizi",
+    "portal.dashboard": "Dashibodi",
+    "portal.products": "Bidhaa",
+    "portal.earnings": "Mapato",
+    "portal.advertising": "Utangazaji",
+    "portal.profile": "Wasifu",
+    "portal.overview": "Muhtasari",
+    "portal.orders": "Maagizo",
+    "portal.artisans": "Wafundi",
+    "portal.withdrawals": "Utoaji pesa",
+    "portal.signout": "Toka",
+    "portal.welcome": "Karibu",
   },
   fr: {
     "nav.home": "Accueil",
@@ -123,6 +175,19 @@ export const TRANSLATIONS: Record<string, Dict> = {
     "countries.explore": "Explorer",
     "countries.all": "Toutes les régions",
     "countries.search": "Rechercher un pays",
+    "nav.artisan": "Portail Artisan",
+    "nav.admin": "Admin",
+    "portal.dashboard": "Tableau de bord",
+    "portal.products": "Produits",
+    "portal.earnings": "Revenus",
+    "portal.advertising": "Publicité",
+    "portal.profile": "Profil",
+    "portal.overview": "Aperçu",
+    "portal.orders": "Commandes",
+    "portal.artisans": "Artisans",
+    "portal.withdrawals": "Retraits",
+    "portal.signout": "Déconnexion",
+    "portal.welcome": "Bienvenue",
   },
   ar: {
     "nav.home": "الرئيسية",
@@ -142,6 +207,19 @@ export const TRANSLATIONS: Record<string, Dict> = {
     "countries.explore": "استكشف",
     "countries.all": "كل المناطق",
     "countries.search": "ابحث عن دولة",
+    "nav.artisan": "بوابة الحرفي",
+    "nav.admin": "الإدارة",
+    "portal.dashboard": "لوحة التحكم",
+    "portal.products": "المنتجات",
+    "portal.earnings": "الأرباح",
+    "portal.advertising": "الإعلانات",
+    "portal.profile": "الملف الشخصي",
+    "portal.overview": "نظرة عامة",
+    "portal.orders": "الطلبات",
+    "portal.artisans": "الحرفيون",
+    "portal.withdrawals": "السحوبات",
+    "portal.signout": "تسجيل الخروج",
+    "portal.welcome": "مرحباً",
   },
   pt: {
     "nav.home": "Início",
@@ -161,6 +239,19 @@ export const TRANSLATIONS: Record<string, Dict> = {
     "countries.explore": "Explorar",
     "countries.all": "Todas as regiões",
     "countries.search": "Pesquisar um país",
+    "nav.artisan": "Portal do Artesão",
+    "nav.admin": "Admin",
+    "portal.dashboard": "Painel",
+    "portal.products": "Produtos",
+    "portal.earnings": "Ganhos",
+    "portal.advertising": "Publicidade",
+    "portal.profile": "Perfil",
+    "portal.overview": "Visão geral",
+    "portal.orders": "Encomendas",
+    "portal.artisans": "Artesãos",
+    "portal.withdrawals": "Levantamentos",
+    "portal.signout": "Sair",
+    "portal.welcome": "Bem-vindo",
   },
   am: {
     "nav.home": "መነሻ",

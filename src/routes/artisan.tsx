@@ -36,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatRWF } from "@/data/catalog";
+import { useLocale } from "@/lib/locale";
 import {
   artisanAdvertising,
   artisanCreateProduct,
@@ -69,6 +70,7 @@ type Tab = "dashboard" | "products" | "earnings" | "advertising" | "profile";
 
 function ArtisanPortal() {
   const qc = useQueryClient();
+  const { t } = useLocale();
   const session = useQuery({ queryKey: ["artisan-session"], queryFn: () => artisanSessionStatus() });
   const [tab, setTab] = useState<Tab>("dashboard");
 
@@ -89,7 +91,7 @@ function ArtisanPortal() {
         <div>
           <p className="text-[10px] tracking-luxe text-gold">Artisan Portal</p>
           <h1 className="mt-2 font-display text-3xl">
-            Welcome, {session.data?.artisan?.full_name ?? "Artisan"}
+            {t("portal.welcome")}, {session.data?.artisan?.full_name ?? "Artisan"}
           </h1>
           <p className="mt-1 text-xs text-muted-foreground">
             Status: <span className="text-gold">{session.data?.artisan?.status ?? "pending"}</span>
@@ -102,17 +104,17 @@ function ArtisanPortal() {
             qc.invalidateQueries();
           }}
         >
-          <LogOut className="mr-2 size-4" /> Sign out
+          <LogOut className="mr-2 size-4" /> {t("portal.signout")}
         </Button>
       </div>
 
       <nav className="mt-8 flex flex-wrap gap-1.5 border-b border-border pb-3">
         {([
-          ["dashboard", "Dashboard"],
-          ["products", "Products"],
-          ["earnings", "Earnings"],
-          ["advertising", "Advertising"],
-          ["profile", "Profile"],
+          ["dashboard", t("portal.dashboard")],
+          ["products", t("portal.products")],
+          ["earnings", t("portal.earnings")],
+          ["advertising", t("portal.advertising")],
+          ["profile", t("portal.profile")],
         ] as [Tab, string][]).map(([id, label]) => (
           <button
             key={id}
