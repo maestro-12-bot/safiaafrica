@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MasterpiecePreview } from "@/components/MasterpiecePreview";
 import {
   COLOR_OPTIONS,
+  DESIGN_OPTIONS,
   FINISH_OPTIONS,
   FRAME_OPTIONS,
   MATERIAL_OPTIONS,
@@ -95,6 +96,7 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
   const [frame, setFrame] = useState(FRAME_OPTIONS[0]!.id);
   const [material, setMaterial] = useState(MATERIAL_OPTIONS[0]!.id);
   const [finish, setFinish] = useState(FINISH_OPTIONS[0]!.id);
+  const [design, setDesign] = useState(DESIGN_OPTIONS[0]!.id);
   const [color, setColor] = useState(COLOR_OPTIONS[0]!);
   const [orientation, setOrientation] = useState<string>(ORIENTATION_OPTIONS[0]!);
   const [services, setServices] = useState<string[]>([]);
@@ -127,6 +129,8 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
         shippingId: shipping,
         productMultiplier: productMultiplier(product),
         serviceIds: services,
+        designId: design,
+        luxury: isLuxury(product),
       }),
     [size, quantity, frame, material, finish, shipping, product, services],
   );
@@ -148,6 +152,7 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
   const frameLabel = FRAME_OPTIONS.find((f) => f.id === frame)!.label;
   const materialLabel = MATERIAL_OPTIONS.find((m) => m.id === material)!.label;
   const finishLabel = FINISH_OPTIONS.find((f) => f.id === finish)!.label;
+  const designLabel = DESIGN_OPTIONS.find((d) => d.id === design)!.label;
   const shippingLabel = SHIPPING_OPTIONS.find((s) => s.id === shipping)!.label;
 
   const estimatedDelivery = useMemo(() => {
@@ -181,6 +186,7 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
           notes: [
             notes,
             `Shipping: ${shippingLabel}`,
+            `Design: ${designLabel}`,
             price.services.length ? `Services: ${price.services.map((s) => s.label).join(", ")}` : "",
             isLuxury(product) ? `Luxury tier: ${product.collection}` : "",
           ]
@@ -332,6 +338,9 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
                   </Field>
                   <Field label="Finish">
                     <Selector value={finish} onChange={setFinish} options={FINISH_OPTIONS} />
+                  </Field>
+                  <Field label="Design">
+                    <Selector value={design} onChange={setDesign} options={DESIGN_OPTIONS} />
                   </Field>
                   <Field label="Colour">
                     <Selector
@@ -491,6 +500,7 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
                   <Row label="Frame" value={frameLabel} />
                   <Row label="Material" value={materialLabel} />
                   <Row label="Finish" value={finishLabel} />
+                  <Row label="Design" value={designLabel} />
                   <Row label="Colour" value={color} />
                   <Row label="Orientation" value={orientation} />
                   <Row label="Quantity" value={String(quantity)} />
@@ -509,8 +519,6 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
                       <Row key={s.id} label={s.label} value={money(s.amount)} />
                     ))}
 
-                    <Row label="Subtotal" value={money(price.subtotal)} />
-                    <Row label="VAT (18%)" value={money(price.tax)} />
                     <Row label="Shipping" value={money(price.shipping)} />
                     <div className="my-3 hairline" />
                     <div className="flex items-baseline justify-between">
@@ -519,6 +527,9 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
                         {money(price.total)}
                       </span>
                     </div>
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      VAT included · final payable amount
+                    </p>
                   </dl>
                 ) : (
                   <p className="rounded-md border border-gold/30 bg-secondary/50 p-3 text-xs text-muted-foreground">

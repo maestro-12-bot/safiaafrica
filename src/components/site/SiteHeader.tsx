@@ -17,6 +17,8 @@ const LINKS = [
   { to: "/order", key: "nav.order" },
   { to: "/track", key: "nav.track" },
   { to: "/contact", key: "nav.contact" },
+  { to: "/artisan", key: "nav.artisan" },
+  { to: "/admin", key: "nav.admin" },
 ] as const satisfies readonly { to: string; key: TranslationKey }[];
 
 const selectClass =

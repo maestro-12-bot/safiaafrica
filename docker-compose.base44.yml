@@ -1,0 +1,28 @@
+# Base44 dev environment — runs the app from cloned source with live reload.
+# Do not edit the app's own compose (if any); this is the canonical run target here.
+services:
+  web:
+    image: oven/bun:1
+    working_dir: /app
+    # Bind-mount the cloned source so edits are reflected live.
+    volumes:
+      - ./:/app
+      - node_modules:/app/node_modules
+    # Lovable's vite config hardcodes the dev server to port 8080 (strictPort).
+    # Map the platform's public port 3000 to the container's 8080.
+    ports:
+      - "3000:8080"
+    env_file:
+      - ./.env.base44-defaults
+      - ./.env
+      - /run/base44/app.env
+    environment:
+      - PORT=3000
+      - HOST=0.0.0.0
+      - BASE44_PUBLIC_HOST_SUFFIX=${BASE44_PUBLIC_HOST_SUFFIX}
+    command: >
+      sh -c "bun install && bun run dev"
+    restart: unless-stopped
+
+volumes:
+  node_modules:

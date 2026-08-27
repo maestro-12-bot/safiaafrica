@@ -1,0 +1,27 @@
+{
+  "previewPort": 3000,
+  "healthPath": "/",
+  "startCommand": "docker compose -f docker-compose.base44.yml up -d",
+  "secrets": [
+    {
+      "name": "SUPABASE_SERVICE_ROLE_KEY",
+      "description": "Supabase service role (secret) key from your Supabase project dashboard (Project Settings → API → service_role secret). Only needed for the /admin route; the public site works without it.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "ADMIN_USERNAME",
+      "description": "Username for the /admin login. Defaults to 'admin' if unset.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "ADMIN_PASSWORD",
+      "description": "Password for the /admin login. Only needed to access the /admin route.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "ADMIN_SESSION_SECRET",
+      "description": "Secret used to sign admin session cookies. Only needed for the /admin route.",
+      "requiredAtBoot": false
+    }
+  ]
+}
