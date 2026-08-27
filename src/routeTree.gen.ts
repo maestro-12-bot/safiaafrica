@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ArtisanRouteImport } from './routes/artisan'
 import { Route as CollectionsRouteImport } from './routes/collections'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as GalleryRouteImport } from './routes/gallery'
@@ -35,6 +36,11 @@ const AboutRoute = AboutRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtisanRoute = ArtisanRouteImport.update({
+  id: '/artisan',
+  path: '/artisan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CollectionsRoute = CollectionsRouteImport.update({
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/artisan': typeof ArtisanRoute
   '/collections': typeof CollectionsRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/artisan': typeof ArtisanRoute
   '/collections': typeof CollectionsRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/artisan': typeof ArtisanRoute
   '/collections': typeof CollectionsRoute
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/artisan'
     | '/collections'
     | '/contact'
     | '/gallery'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/artisan'
     | '/collections'
     | '/contact'
     | '/gallery'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/artisan'
     | '/collections'
     | '/contact'
     | '/gallery'
@@ -175,6 +187,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
+  ArtisanRoute: typeof ArtisanRoute
   CollectionsRoute: typeof CollectionsRoute
   ContactRoute: typeof ContactRoute
   GalleryRoute: typeof GalleryRoute
@@ -207,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artisan': {
+      id: '/artisan'
+      path: '/artisan'
+      fullPath: '/artisan'
+      preLoaderRoute: typeof ArtisanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collections': {
@@ -279,6 +299,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
+  ArtisanRoute: ArtisanRoute,
   CollectionsRoute: CollectionsRoute,
   ContactRoute: ContactRoute,
   GalleryRoute: GalleryRoute,

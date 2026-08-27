@@ -214,18 +214,8 @@ export interface MaterialOption {
 
 export const MATERIAL_OPTIONS: MaterialOption[] = [
   {
-    id: "mdf-3d",
-    label: "MDF 3D relief",
-    multiplier: 1,
-    textureCss:
-      "repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0 2px, rgba(0,0,0,0.06) 2px 5px)",
-    textureOpacity: 0.5,
-    blend: "overlay",
-    relief: 0.5,
-  },
-  {
     id: "premium-mdf",
-    label: "Premium MDF (deep relief)",
+    label: "Premium MDF",
     multiplier: 1.14,
     textureCss:
       "repeating-linear-gradient(115deg, rgba(255,255,255,0.09) 0 3px, rgba(0,0,0,0.1) 3px 7px)",
@@ -234,65 +224,62 @@ export const MATERIAL_OPTIONS: MaterialOption[] = [
     relief: 0.8,
   },
   {
-    id: "hardwood",
-    label: "Carved African hardwood",
-    multiplier: 1.22,
+    id: "luxury-mdf",
+    label: "Luxury MDF",
+    multiplier: 1.26,
     textureCss:
-      "repeating-linear-gradient(92deg, rgba(120,72,32,0.28) 0 4px, rgba(40,22,10,0.24) 4px 9px)",
-    textureOpacity: 0.55,
-    blend: "soft-light",
-    relief: 0.7,
-  },
-  {
-    id: "canvas",
-    label: "Artist canvas",
-    multiplier: 1.02,
-    textureCss:
-      "repeating-linear-gradient(0deg, rgba(255,255,255,0.07) 0 2px, transparent 2px 4px), repeating-linear-gradient(90deg, rgba(0,0,0,0.07) 0 2px, transparent 2px 4px)",
-    textureOpacity: 0.6,
-    blend: "overlay",
-    relief: 0.2,
-  },
-  {
-    id: "acrylic",
-    label: "Acrylic panel",
-    multiplier: 1.18,
-    textureCss:
-      "linear-gradient(120deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 38%, rgba(255,255,255,0.16) 72%, rgba(255,255,255,0) 100%)",
-    textureOpacity: 0.75,
-    blend: "screen",
-    relief: 0.15,
-  },
-  {
-    id: "metal",
-    label: "Anodised metal",
-    multiplier: 1.3,
-    textureCss:
-      "repeating-linear-gradient(105deg, rgba(255,255,255,0.14) 0 1px, rgba(0,0,0,0.14) 1px 3px)",
+      "repeating-linear-gradient(115deg, rgba(255,255,255,0.11) 0 4px, rgba(0,0,0,0.12) 4px 8px)",
     textureOpacity: 0.7,
-    blend: "hard-light",
-    relief: 0.35,
-  },
-  {
-    id: "brass-inlay",
-    label: "Brass inlay on hardwood",
-    multiplier: 1.35,
-    textureCss:
-      "repeating-linear-gradient(45deg, rgba(217,192,124,0.3) 0 3px, rgba(40,26,8,0.25) 3px 10px)",
-    textureOpacity: 0.6,
     blend: "overlay",
-    relief: 0.75,
-  },
-  {
-    id: "cow-dung",
-    label: "Traditional Imigongo clay",
-    multiplier: 1.1,
-    textureCss:
-      "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.14), transparent 55%), repeating-linear-gradient(135deg, rgba(90,60,30,0.22) 0 5px, rgba(20,12,6,0.18) 5px 11px)",
-    textureOpacity: 0.55,
-    blend: "soft-light",
     relief: 0.9,
   },
+  {
+    id: "decorative-mdf",
+    label: "Decorative MDF",
+    multiplier: 1.08,
+    textureCss:
+      "repeating-linear-gradient(115deg, rgba(255,255,255,0.07) 0 2px, rgba(0,0,0,0.07) 2px 5px)",
+    textureOpacity: 0.55,
+    blend: "overlay",
+    relief: 0.55,
+  },
+  {
+    id: "moisture-mdf",
+    label: "Moisture Resistant MDF",
+    multiplier: 1.18,
+    textureCss:
+      "repeating-linear-gradient(110deg, rgba(120,160,200,0.1) 0 3px, rgba(0,0,0,0.06) 3px 6px)",
+    textureOpacity: 0.5,
+    blend: "soft-light",
+    relief: 0.6,
+  },
+  {
+    id: "high-density-mdf",
+    label: "High Density MDF",
+    multiplier: 1.32,
+    textureCss:
+      "repeating-linear-gradient(115deg, rgba(255,255,255,0.12) 0 2px, rgba(0,0,0,0.14) 2px 4px)",
+    textureOpacity: 0.75,
+    blend: "overlay",
+    relief: 0.85,
+  },
+];
+
+/** Design style options — drive the "Design Complexity" pricing factor. */
+export interface DesignOption {
+  id: string;
+  label: string;
+  /** Complexity multiplier applied to the price. */
+  multiplier: number;
+}
+
+export const DESIGN_OPTIONS: DesignOption[] = [
+  { id: "modern", label: "Modern Design", multiplier: 1.05 },
+  { id: "luxury", label: "Luxury Design", multiplier: 1.18 },
+  { id: "minimalist", label: "Minimalist Design", multiplier: 1.02 },
+  { id: "executive", label: "Executive Design", multiplier: 1.12 },
+  { id: "classic", label: "Classic Design", multiplier: 1.08 },
+  { id: "contemporary", label: "Contemporary Design", multiplier: 1.1 },
 ];
 
 export interface FinishOption {
@@ -385,6 +372,20 @@ export const SERVICE_OPTIONS = [
 ];
 
 export const TAX_RATE = 0.18;
+
+/**
+ * Frame pricing rules. Standard (non-luxury) pieces are clamped into the
+ * 100,000 – 1,000,000 RWF band. Luxury pieces honour the floor but may exceed
+ * the ceiling. VAT is already included in all displayed prices.
+ */
+export const FRAME_PRICE_MIN = 100_000;
+export const FRAME_PRICE_MAX = 1_000_000;
+
+export function clampFramePrice(value: number, luxury: boolean): number {
+  if (value < FRAME_PRICE_MIN) return FRAME_PRICE_MIN;
+  if (!luxury && value > FRAME_PRICE_MAX) return FRAME_PRICE_MAX;
+  return value;
+}
 
 export type ProductBadge =
   | "LUXURY"
@@ -741,6 +742,10 @@ export interface PriceInput {
   productMultiplier?: number;
   /** Ids from SERVICE_OPTIONS. */
   serviceIds?: string[];
+  /** Design style id from DESIGN_OPTIONS (drives complexity pricing). */
+  designId?: string;
+  /** Whether the product is a luxury tier — exempt from the price ceiling. */
+  luxury?: boolean;
 }
 
 export interface PriceBreakdown {
@@ -773,14 +778,17 @@ export function calculatePrice(input: PriceInput): PriceBreakdown {
   };
   if (base === null) return empty;
 
+  const luxury = input.luxury ?? false;
   const frame = FRAME_OPTIONS.find((f) => f.id === input.frameId)?.multiplier ?? 1;
   const material = MATERIAL_OPTIONS.find((m) => m.id === input.materialId)?.multiplier ?? 1;
   const finish = FINISH_OPTIONS.find((f) => f.id === input.finishId)?.multiplier ?? 1;
+  const design = DESIGN_OPTIONS.find((d) => d.id === input.designId)?.multiplier ?? 1;
   const shipping = SHIPPING_OPTIONS.find((s) => s.id === input.shippingId)?.price ?? 0;
   const premium = input.productMultiplier ?? 1;
 
   const quantity = Math.max(1, Math.min(99, Math.round(input.quantity || 1)));
-  const unitPrice = base * premium * frame * material * finish;
+  // All prices are VAT-inclusive (VAT is embedded, never shown separately).
+  const unitPrice = clampFramePrice(base * premium * frame * material * finish * design, luxury);
   const gross = unitPrice * quantity;
   // Volume courtesy for collectors and corporate orders.
   const discountRate = quantity >= 10 ? 0.1 : quantity >= 5 ? 0.05 : 0;
@@ -795,11 +803,12 @@ export function calculatePrice(input: PriceInput): PriceBreakdown {
   const servicesTotal = services.reduce((sum, s) => sum + s.amount, 0);
 
   const subtotal = net + servicesTotal;
-  const tax = subtotal * TAX_RATE;
+  // VAT portion embedded inside the VAT-inclusive subtotal (kept for records only).
+  const tax = subtotal - subtotal / (1 + TAX_RATE);
 
   return {
     quotable: true,
-    basePrice: base * premium,
+    basePrice: clampFramePrice(base * premium, luxury),
     unitPrice,
     services,
     servicesTotal,
@@ -807,7 +816,7 @@ export function calculatePrice(input: PriceInput): PriceBreakdown {
     tax,
     shipping,
     discount,
-    total: subtotal + tax + shipping,
+    total: subtotal + shipping,
   };
 }
 

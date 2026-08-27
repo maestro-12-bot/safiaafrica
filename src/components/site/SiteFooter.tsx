@@ -35,6 +35,11 @@ export function SiteFooter() {
                 Track an Order
               </Link>
             </li>
+            <li>
+              <Link to="/artisan" className="hover:text-foreground">
+                Artisan Portal
+              </Link>
+            </li>
           </ul>
         </div>
 
