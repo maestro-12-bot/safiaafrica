@@ -174,7 +174,10 @@ function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
   const mut = useMutation({
     mutationFn: () => artisanLogin({ data: { email, password } }),
     onSuccess: (res) => {
-      if (!res.ok) return toast.error("Invalid email or password.");
+      if (!res.ok) {
+        toast.error("Invalid email or password.");
+        return;
+      }
       toast.success("Signed in");
       onSignedIn();
     },
@@ -445,7 +448,7 @@ function ProductForm({ initial, onClose, onSaved }: { initial: any; onClose: () 
       const payload = {
         name: f.name,
         description: f.description,
-        images: f.images.split("\n").map((s) => s.trim()).filter(Boolean),
+        images: f.images.split("\n").map((s: string) => s.trim()).filter(Boolean),
         dimensions: f.dimensions,
         materials: f.materials,
         frameType: f.frameType,
@@ -734,7 +737,7 @@ function Table({ children }: { children: React.ReactNode }) {
 function Th({ children }: { children: React.ReactNode }) {
   return <th className="bg-card/40 p-3 text-[10px] tracking-luxe text-muted-foreground">{children}</th>;
 }
-function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function Td({ children = null, className = "" }: { children?: React.ReactNode; className?: string }) {
   return <td className={`p-3 ${className}`}>{children}</td>;
 }
 
