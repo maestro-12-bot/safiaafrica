@@ -14,6 +14,182 @@ export type Database = {
   }
   public: {
     Tables: {
+      artisan_products: {
+        Row: {
+          artisan_id: string | null
+          created_at: string | null
+          description: string | null
+          design_style: string | null
+          dimensions: string | null
+          featured: boolean | null
+          frame_type: string | null
+          id: string
+          images: string[] | null
+          inventory: number | null
+          likes: number | null
+          materials: string | null
+          name: string
+          price: number | null
+          status: string | null
+          views: number | null
+        }
+        Insert: {
+          artisan_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          design_style?: string | null
+          dimensions?: string | null
+          featured?: boolean | null
+          frame_type?: string | null
+          id?: string
+          images?: string[] | null
+          inventory?: number | null
+          likes?: number | null
+          materials?: string | null
+          name: string
+          price?: number | null
+          status?: string | null
+          views?: number | null
+        }
+        Update: {
+          artisan_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          design_style?: string | null
+          dimensions?: string | null
+          featured?: boolean | null
+          frame_type?: string | null
+          id?: string
+          images?: string[] | null
+          inventory?: number | null
+          likes?: number | null
+          materials?: string | null
+          name?: string
+          price?: number | null
+          status?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artisan_products_artisan_id_fkey"
+            columns: ["artisan_id"]
+            isOneToOne: false
+            referencedRelation: "artisans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artisans: {
+        Row: {
+          auth_user_id: string | null
+          bio: string | null
+          created_at: string | null
+          email: string
+          featured: boolean | null
+          full_name: string
+          id: string
+          location: string | null
+          password_hash: string | null
+          phone: string | null
+          photo_url: string | null
+          provider: string | null
+          skills: string[] | null
+          social_links: Json | null
+          status: string | null
+          verified: boolean | null
+          years_experience: number | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          bio?: string | null
+          created_at?: string | null
+          email: string
+          featured?: boolean | null
+          full_name: string
+          id?: string
+          location?: string | null
+          password_hash?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          provider?: string | null
+          skills?: string[] | null
+          social_links?: Json | null
+          status?: string | null
+          verified?: boolean | null
+          years_experience?: number | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          bio?: string | null
+          created_at?: string | null
+          email?: string
+          featured?: boolean | null
+          full_name?: string
+          id?: string
+          location?: string | null
+          password_hash?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          provider?: string | null
+          skills?: string[] | null
+          social_links?: Json | null
+          status?: string | null
+          verified?: boolean | null
+          years_experience?: number | null
+        }
+        Relationships: []
+      }
+      commissions: {
+        Row: {
+          artisan_id: string | null
+          artisan_share: number | null
+          created_at: string | null
+          gross: number | null
+          id: string
+          order_number: string | null
+          platform_share: number | null
+          product_id: string | null
+          status: string | null
+        }
+        Insert: {
+          artisan_id?: string | null
+          artisan_share?: number | null
+          created_at?: string | null
+          gross?: number | null
+          id?: string
+          order_number?: string | null
+          platform_share?: number | null
+          product_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          artisan_id?: string | null
+          artisan_share?: number | null
+          created_at?: string | null
+          gross?: number | null
+          id?: string
+          order_number?: string | null
+          platform_share?: number | null
+          product_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_artisan_id_fkey"
+            columns: ["artisan_id"]
+            isOneToOne: false
+            referencedRelation: "artisans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commissions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "artisan_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           address: string
@@ -118,6 +294,68 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      page_views: {
+        Row: {
+          country: string | null
+          created_at: string | null
+          id: string
+          path: string
+          referrer: string | null
+          session_id: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          path: string
+          referrer?: string | null
+          session_id?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          path?: string
+          referrer?: string | null
+          session_id?: string | null
+        }
+        Relationships: []
+      }
+      withdrawals: {
+        Row: {
+          amount: number | null
+          artisan_id: string | null
+          created_at: string | null
+          id: string
+          note: string | null
+          status: string | null
+        }
+        Insert: {
+          amount?: number | null
+          artisan_id?: string | null
+          created_at?: string | null
+          id?: string
+          note?: string | null
+          status?: string | null
+        }
+        Update: {
+          amount?: number | null
+          artisan_id?: string | null
+          created_at?: string | null
+          id?: string
+          note?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawals_artisan_id_fkey"
+            columns: ["artisan_id"]
+            isOneToOne: false
+            referencedRelation: "artisans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
