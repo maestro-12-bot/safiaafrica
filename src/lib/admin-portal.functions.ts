@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useSession } from "@tanstack/react-start/server";
 import { z } from "zod";
 
-import { splitCommission } from "@/lib/artisan.functions";
+import { resolveImages, splitCommission } from "@/lib/artisan.functions";
 
 type AdminSession = { admin?: boolean };
 
@@ -128,10 +128,15 @@ export const adminListProducts = createServerFn({ method: "GET" }).handler(async
   const supabase = await getAdmin();
   const { data, error } = await supabase
     .from("artisan_products")
-    .select("id, name, status, featured, price, views, likes, created_at, artisan_id, artisan:artisans(full_name)")
+    .select(
+      "id, name, description, images, dimensions, materials, status, featured, price, views, likes, created_at, artisan_id, artisan:artisans(full_name, email)",
+    )
     .order("created_at", { ascending: false });
   if (error) throw new Error("Could not load products.");
-  return { products: data ?? [] };
+  const products = await Promise.all(
+    (data ?? []).map(async (p: any) => ({ ...p, imageUrls: await resolveImages(supabase, p.images) })),
+  );
+  return { products };
 });
 
 export const adminSetProductStatus = createServerFn({ method: "POST" })
@@ -222,3 +227,59 @@ export const adminProcessWithdrawal = createServerFn({ method: "POST" })
     if (error) throw new Error("Could not update the withdrawal.");
     return { ok: true as const };
   });
+
+// ── Visitors / traffic ─────────────────────────────────────────────────────────
+export const adminVisitors = createServerFn({ method: "GET" }).handler(async () => {
+  await requireAdmin();
+  const supabase = await getAdmin();
+
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("page_views")
+    .select("id, path, referrer, session_id, created_at")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(5000);
+  if (error) throw new Error("Could not load visitor analytics.");
+
+  const views = data ?? [];
+  const dayKey = (iso: string) => new Date(iso).toISOString().slice(0, 10);
+  const todayKey = new Date().toISOString().slice(0, 10);
+
+  const daily: { label: string; views: number; visitors: number }[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    const key = d.toISOString().slice(0, 10);
+    const rows = views.filter((v: any) => dayKey(v.created_at) === key);
+    daily.push({
+      label: d.toLocaleDateString("en", { month: "short", day: "numeric" }),
+      views: rows.length,
+      visitors: new Set(rows.map((v: any) => v.session_id).filter(Boolean)).size,
+    });
+  }
+
+  const pathCounts = new Map<string, number>();
+  const refCounts = new Map<string, number>();
+  for (const v of views as any[]) {
+    pathCounts.set(v.path, (pathCounts.get(v.path) ?? 0) + 1);
+    const ref = v.referrer ? new URL(v.referrer, "http://x").host || "direct" : "direct";
+    refCounts.set(ref, (refCounts.get(ref) ?? 0) + 1);
+  }
+  const sortDesc = (m: Map<string, number>) =>
+    [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([label, count]) => ({ label, count }));
+
+  return {
+    stats: {
+      totalViews: views.length,
+      uniqueVisitors: new Set(views.map((v: any) => v.session_id).filter(Boolean)).size,
+      viewsToday: views.filter((v: any) => dayKey(v.created_at) === todayKey).length,
+      visitorsToday: new Set(
+        views.filter((v: any) => dayKey(v.created_at) === todayKey).map((v: any) => v.session_id).filter(Boolean),
+      ).size,
+    },
+    daily,
+    topPages: sortDesc(pathCounts),
+    topReferrers: sortDesc(refCounts),
+    recent: views.slice(0, 25),
+  };
+});
