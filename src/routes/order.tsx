@@ -4,9 +4,17 @@ import { useState } from "react";
 import { OrderDialog } from "@/components/OrderDialog";
 import { ProductBadges } from "@/components/ProductBadges";
 import { Button } from "@/components/ui/button";
-import { ALL_PRODUCTS, SIZE_TIERS, calculatePrice, formatRWF, type Product } from "@/data/catalog";
+import {
+  ALL_PRODUCTS,
+  SIZE_TIERS,
+  calculatePrice,
+  formatRWF,
+  isLuxury,
+  tierBasePrice,
+  type Product,
+} from "@/data/catalog";
 
-const A4_PRICE = SIZE_TIERS.find((t) => t.code === "A4")!.price!;
+const A4_PRICE = tierBasePrice(SIZE_TIERS.find((t) => t.code === "A4")!.price)!;
 
 
 export const Route = createFileRoute("/order")({
@@ -102,6 +110,7 @@ function OrderPage() {
                       finishId: "matte",
                       shippingId: "kigali",
                       productMultiplier: p.priceMultiplier ?? 1,
+                      luxury: isLuxury(p),
                     }).unitPrice || A4_PRICE,
                   )}
                 </p>

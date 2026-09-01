@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { useSession } from "@tanstack/react-start/server";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
@@ -28,6 +29,24 @@ async function requireArtisan() {
   const session = await useSession<ArtisanSession>(sessionConfig());
   if (!session.data.artisanId) throw new Error("UNAUTHORIZED");
   return session;
+}
+
+export const ARTWORK_BUCKET = "artisan-artwork";
+
+/** Turns stored artwork references into displayable URLs (signed for uploads). */
+export async function resolveImages(supabase: any, images: string[] | null | undefined) {
+  const list = images ?? [];
+  const out: string[] = [];
+  for (const value of list) {
+    if (!value) continue;
+    if (/^https?:\/\//i.test(value) || value.startsWith("data:")) {
+      out.push(value);
+      continue;
+    }
+    const { data } = await supabase.storage.from(ARTWORK_BUCKET).createSignedUrl(value, 60 * 60 * 24 * 7);
+    if (data?.signedUrl) out.push(data.signedUrl);
+  }
+  return out;
 }
 
 async function getAdmin() {
@@ -110,6 +129,64 @@ export const artisanLogin = createServerFn({ method: "POST" })
     const session = await useSession<ArtisanSession>(sessionConfig());
     await session.update({ artisanId: artisan.id });
     return { ok: true as const, status: artisan.status };
+  });
+
+/**
+ * Called right after a Google (or other provider) sign-in. Links the signed-in
+ * identity to an artisan account — creating one on first sign-in — and opens
+ * the artisan portal session.
+ */
+export const artisanOAuthSync = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabase = await getAdmin();
+    const { data: userData } = await context.supabase.auth.getUser();
+    const user = userData?.user;
+    if (!user?.email) throw new Error("Your sign-in did not share an email address.");
+
+    const email = user.email.toLowerCase();
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+    const fullName =
+      (typeof meta["full_name"] === "string" && meta["full_name"]) ||
+      (typeof meta["name"] === "string" && meta["name"]) ||
+      email.split("@")[0]!;
+    const photo = typeof meta["avatar_url"] === "string" ? meta["avatar_url"] : null;
+    const provider = user.app_metadata?.provider ?? "oauth";
+
+    const { data: existing } = await supabase
+      .from("artisans")
+      .select("id, status")
+      .eq("email", email)
+      .maybeSingle();
+
+    let artisanId = existing?.id as string | undefined;
+    if (existing) {
+      if (existing.status === "suspended") throw new Error("Your artisan account is suspended.");
+      await supabase
+        .from("artisans")
+        .update({ auth_user_id: user.id, provider, photo_url: photo ?? undefined })
+        .eq("id", existing.id);
+    } else {
+      const { data: row, error } = await supabase
+        .from("artisans")
+        .insert({
+          email,
+          full_name: String(fullName),
+          photo_url: photo,
+          auth_user_id: user.id,
+          provider,
+          status: "pending",
+          verified: false,
+        })
+        .select("id")
+        .single();
+      if (error) throw new Error("Could not create your artisan account.");
+      artisanId = row!.id;
+    }
+
+    const session = await useSession<ArtisanSession>(sessionConfig());
+    await session.update({ artisanId: artisanId! });
+    return { ok: true as const, isNew: !existing };
   });
 
 export const artisanLogout = createServerFn({ method: "POST" }).handler(async () => {
@@ -199,8 +276,36 @@ export const artisanListProducts = createServerFn({ method: "GET" }).handler(asy
     .eq("artisan_id", session.data.artisanId!)
     .order("created_at", { ascending: false });
   if (error) throw new Error("Could not load your products.");
-  return { products: data ?? [] };
+  const products = await Promise.all(
+    (data ?? []).map(async (p: any) => ({ ...p, imageUrls: await resolveImages(supabase, p.images) })),
+  );
+  return { products };
 });
+
+/** Uploads one artwork image to private storage and returns its stored path. */
+export const artisanUploadArtwork = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        fileName: z.string().trim().min(1).max(200),
+        contentType: z.string().trim().max(120),
+        base64: z.string().min(16).max(22_000_000),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const session = await requireArtisan();
+    const supabase = await getAdmin();
+    const safe = data.fileName.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-80);
+    const path = `${session.data.artisanId}/${Date.now()}-${safe}`;
+    const bytes = Buffer.from(data.base64, "base64");
+    const { error } = await supabase.storage
+      .from(ARTWORK_BUCKET)
+      .upload(path, bytes, { contentType: data.contentType || "image/jpeg", upsert: false });
+    if (error) throw new Error("Could not upload that image.");
+    const [url] = await resolveImages(supabase, [path]);
+    return { ok: true as const, path, url: url ?? null };
+  });
 
 export const artisanCreateProduct = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => productInput.parse(data))

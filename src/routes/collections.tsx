@@ -10,13 +10,15 @@ import {
   MDF_TIERS,
   PRODUCTS,
   SIZE_TIERS,
+  tierBasePrice,
+  isLuxury,
   calculatePrice,
   formatRWF,
   type Product,
 } from "@/data/catalog";
 
-const A4_PRICE = SIZE_TIERS.find((t) => t.code === "A4")!.price!;
-const A0_PRICE = SIZE_TIERS.find((t) => t.code === "A0")!.price!;
+const A4_PRICE = tierBasePrice(SIZE_TIERS.find((t) => t.code === "A4")!.price)!;
+const A0_PRICE = tierBasePrice(SIZE_TIERS.find((t) => t.code === "A0")!.price)!;
 
 
 export const Route = createFileRoute("/collections")({
@@ -115,6 +117,7 @@ function Collections() {
                         finishId: "matte",
                         shippingId: "kigali",
                         productMultiplier: p.priceMultiplier ?? 1,
+                        luxury: isLuxury(p),
                       }).unitPrice,
                     )}
                   </p>
