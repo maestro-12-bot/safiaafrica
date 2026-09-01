@@ -2,7 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Compass, Gem, Landmark, Sparkles } from "lucide-react";
 
 import heroImage from "@/assets/hero-imigongo.jpg";
-import { PRODUCTS, SIZE_TIERS, formatRWF } from "@/data/catalog";
+import { PRODUCTS, SIZE_TIERS, formatRWF, tierBasePrice } from "@/data/catalog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -239,7 +239,7 @@ function Home() {
                     <td className="py-4 text-muted-foreground">{t.dimensions}</td>
                     <td className="py-4 text-muted-foreground">{t.targetClient}</td>
                     <td className="py-4 text-right text-gold">
-                      {t.price === null ? "On request" : formatRWF(t.price)}
+                      {t.price === null ? "On request" : formatRWF(tierBasePrice(t.price)!)}
                     </td>
                   </tr>
                 ))}
