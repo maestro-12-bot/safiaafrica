@@ -381,6 +381,19 @@ export const TAX_RATE = 0.18;
 export const FRAME_PRICE_MIN = 100_000;
 export const FRAME_PRICE_MAX = 1_000_000;
 
+/**
+ * Standard (non-luxury) collections are priced inside the 100,000 – 1,000,000
+ * RWF band. The size tiers below carry the luxury/masterpiece base price, so
+ * standard pieces are scaled down before the band clamp is applied.
+ */
+export const STANDARD_PRICE_SCALE = 0.16;
+
+/** Base price for a size tier, for standard or luxury pieces. */
+export function tierBasePrice(price: number | null, luxury = false): number | null {
+  if (price === null) return null;
+  return luxury ? price : clampFramePrice(price * STANDARD_PRICE_SCALE, false);
+}
+
 export function clampFramePrice(value: number, luxury: boolean): number {
   if (value < FRAME_PRICE_MIN) return FRAME_PRICE_MIN;
   if (!luxury && value > FRAME_PRICE_MAX) return FRAME_PRICE_MAX;
@@ -779,6 +792,7 @@ export function calculatePrice(input: PriceInput): PriceBreakdown {
   if (base === null) return empty;
 
   const luxury = input.luxury ?? false;
+  const scaledBase = luxury ? base : base * STANDARD_PRICE_SCALE;
   const frame = FRAME_OPTIONS.find((f) => f.id === input.frameId)?.multiplier ?? 1;
   const material = MATERIAL_OPTIONS.find((m) => m.id === input.materialId)?.multiplier ?? 1;
   const finish = FINISH_OPTIONS.find((f) => f.id === input.finishId)?.multiplier ?? 1;
@@ -788,7 +802,7 @@ export function calculatePrice(input: PriceInput): PriceBreakdown {
 
   const quantity = Math.max(1, Math.min(99, Math.round(input.quantity || 1)));
   // All prices are VAT-inclusive (VAT is embedded, never shown separately).
-  const unitPrice = clampFramePrice(base * premium * frame * material * finish * design, luxury);
+  const unitPrice = clampFramePrice(scaledBase * premium * frame * material * finish * design, luxury);
   const gross = unitPrice * quantity;
   // Volume courtesy for collectors and corporate orders.
   const discountRate = quantity >= 10 ? 0.1 : quantity >= 5 ? 0.05 : 0;
@@ -808,7 +822,7 @@ export function calculatePrice(input: PriceInput): PriceBreakdown {
 
   return {
     quotable: true,
-    basePrice: clampFramePrice(base * premium, luxury),
+    basePrice: clampFramePrice(scaledBase * premium, luxury),
     unitPrice,
     services,
     servicesTotal,
