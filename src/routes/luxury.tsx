@@ -45,6 +45,7 @@ function fromPrice(p: Product) {
     finishId: "matte",
     shippingId: "kigali",
     productMultiplier: p.priceMultiplier ?? 1,
+    luxury: true,
   });
   return price.unitPrice;
 }
@@ -58,6 +59,7 @@ function topPrice(p: Product) {
     finishId: "gilded",
     shippingId: "kigali",
     productMultiplier: p.priceMultiplier ?? 1,
+    luxury: true,
   });
   return price.unitPrice;
 }
