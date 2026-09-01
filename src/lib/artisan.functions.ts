@@ -103,7 +103,7 @@ export const artisanLogin = createServerFn({ method: "POST" })
       .select("id, email, password_hash, status, full_name")
       .eq("email", data.email.toLowerCase())
       .maybeSingle();
-    if (!artisan || !matches(data.password, artisan.password_hash)) {
+    if (!artisan || !artisan.password_hash || !matches(data.password, artisan.password_hash)) {
       return { ok: false as const };
     }
     if (artisan.status === "suspended") throw new Error("Your artisan account is suspended.");
