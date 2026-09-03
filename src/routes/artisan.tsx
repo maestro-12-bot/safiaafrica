@@ -148,6 +148,15 @@ function AuthScreen({ onSignedIn }: { onSignedIn: () => void }) {
     <div className="mx-auto max-w-xl px-5 py-16">
       <p className="text-center text-[10px] tracking-luxe text-gold">Artisan Portal</p>
       <h1 className="mt-3 text-center font-display text-4xl">Join the SAFIA atelier.</h1>
+
+      <GoogleSignIn onSignedIn={onSignedIn} />
+
+      <div className="mt-8 flex items-center gap-3">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-[10px] tracking-luxe text-muted-foreground">or use email</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
       <div className="mt-8 flex justify-center gap-2">
         {(["login", "register"] as const).map((m) => (
           <button
@@ -167,6 +176,64 @@ function AuthScreen({ onSignedIn }: { onSignedIn: () => void }) {
     </div>
   );
 }
+
+/**
+ * Google sign-in for artisans. After the provider returns, the Supabase
+ * identity is linked to (or creates) an artisan record and the portal session
+ * is opened server-side.
+ */
+function GoogleSignIn({ onSignedIn }: { onSignedIn: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const sync = useMutation({
+    mutationFn: () => artisanOAuthSync(),
+    onSuccess: (res) => {
+      toast.success(res.isNew ? "Artisan account created — awaiting approval" : "Signed in");
+      onSignedIn();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // If the user is already signed in with a provider (e.g. just came back from
+  // the Google redirect), link that identity to the artisan portal.
+  useEffect(() => {
+    let cancelled = false;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled && data.session) sync.mutate();
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="mt-8">
+      <Button
+        variant="outline"
+        className="w-full"
+        disabled={busy || sync.isPending}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/artisan" });
+            sync.mutate();
+          } catch (e) {
+            toast.error((e as Error).message || "Google sign-in failed.");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {(busy || sync.isPending) && <Loader2 className="mr-2 size-4 animate-spin" />}
+        Continue with Google
+      </Button>
+      <p className="mt-2 text-center text-[11px] text-muted-foreground">
+        New artisans are reviewed by the SAFIA team before their artwork goes live.
+      </p>
+    </div>
+  );
+}
+
 
 function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
   const [email, setEmail] = useState("");
