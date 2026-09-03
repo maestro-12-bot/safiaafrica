@@ -39,7 +39,14 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     window.localStorage.setItem(CUR_KEY, code);
   }, []);
 
+  useEffect(() => {
+    const rtl = RTL_LANGUAGES.includes(lang);
+    document.documentElement.lang = lang;
+    document.documentElement.dir = rtl ? "rtl" : "ltr";
+  }, [lang]);
+
   const value = useMemo<LocaleValue>(() => {
+
     const currency = currencyByCode(currencyCode);
     return {
       lang,

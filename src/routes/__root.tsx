@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -15,6 +16,8 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Toaster } from "@/components/ui/sonner";
 import { LocaleProvider } from "@/lib/locale";
+import { recordPageView } from "@/lib/analytics.functions";
+
 
 function NotFoundComponent() {
   return (
@@ -120,12 +123,36 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function PageViewTracker() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    if (pathname.startsWith("/admin") || pathname.startsWith("/artisan")) return;
+    let sessionId = "";
+    try {
+      sessionId = window.localStorage.getItem("safia.session") ?? "";
+      if (!sessionId) {
+        sessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        window.localStorage.setItem("safia.session", sessionId);
+      }
+    } catch {
+      /* storage unavailable — still record the view anonymously */
+    }
+    void recordPageView({
+      data: { path: pathname, referrer: document.referrer ?? "", sessionId },
+    }).catch(() => {});
+  }, [pathname]);
+
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
       <LocaleProvider>
+        <PageViewTracker />
         <div className="min-h-screen bg-background">
           <SiteHeader />
           <main className="pt-16">
@@ -139,3 +166,4 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+

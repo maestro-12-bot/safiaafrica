@@ -28,7 +28,7 @@ import {
   UserPlus,
   Wallet,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -37,20 +37,27 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatRWF } from "@/data/catalog";
 import { useLocale } from "@/lib/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import {
   artisanAdvertising,
   artisanCreateProduct,
   artisanDashboard,
   artisanDeleteProduct,
   artisanEarnings,
+  artisanGetProfile,
   artisanListProducts,
   artisanLogin,
   artisanLogout,
+  artisanOAuthSync,
   artisanRegister,
   artisanRequestWithdrawal,
   artisanSessionStatus,
   artisanUpdateProduct,
+  artisanUpdateProfile,
+  artisanUploadArtwork,
 } from "@/lib/artisan.functions";
+
 
 export const Route = createFileRoute("/artisan")({
   head: () => ({
@@ -148,6 +155,15 @@ function AuthScreen({ onSignedIn }: { onSignedIn: () => void }) {
     <div className="mx-auto max-w-xl px-5 py-16">
       <p className="text-center text-[10px] tracking-luxe text-gold">Artisan Portal</p>
       <h1 className="mt-3 text-center font-display text-4xl">Join the SAFIA atelier.</h1>
+
+      <GoogleSignIn onSignedIn={onSignedIn} />
+
+      <div className="mt-8 flex items-center gap-3">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-[10px] tracking-luxe text-muted-foreground">or use email</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
       <div className="mt-8 flex justify-center gap-2">
         {(["login", "register"] as const).map((m) => (
           <button
@@ -167,6 +183,64 @@ function AuthScreen({ onSignedIn }: { onSignedIn: () => void }) {
     </div>
   );
 }
+
+/**
+ * Google sign-in for artisans. After the provider returns, the Supabase
+ * identity is linked to (or creates) an artisan record and the portal session
+ * is opened server-side.
+ */
+function GoogleSignIn({ onSignedIn }: { onSignedIn: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const sync = useMutation({
+    mutationFn: () => artisanOAuthSync(),
+    onSuccess: (res) => {
+      toast.success(res.isNew ? "Artisan account created — awaiting approval" : "Signed in");
+      onSignedIn();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // If the user is already signed in with a provider (e.g. just came back from
+  // the Google redirect), link that identity to the artisan portal.
+  useEffect(() => {
+    let cancelled = false;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled && data.session) sync.mutate();
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="mt-8">
+      <Button
+        variant="outline"
+        className="w-full"
+        disabled={busy || sync.isPending}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/artisan" });
+            sync.mutate();
+          } catch (e) {
+            toast.error((e as Error).message || "Google sign-in failed.");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {(busy || sync.isPending) && <Loader2 className="mr-2 size-4 animate-spin" />}
+        Continue with Google
+      </Button>
+      <p className="mt-2 text-center text-[11px] text-muted-foreground">
+        New artisans are reviewed by the SAFIA team before their artwork goes live.
+      </p>
+    </div>
+  );
+}
+
 
 function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
   const [email, setEmail] = useState("");
@@ -391,9 +465,10 @@ function ProductsTab() {
                 <tr key={p.id} className="border-t border-border">
                   <td className="p-3">
                     <div className="flex items-center gap-3">
-                      {p.images?.[0] ? (
-                        <img src={p.images[0]} alt={p.name} className="size-12 rounded-md object-cover" />
+                      {p.imageUrls?.[0] ? (
+                        <img src={p.imageUrls[0]} alt={p.name} className="size-12 rounded-md object-cover" />
                       ) : (
+
                         <div className="flex size-12 items-center justify-center rounded-md bg-secondary"><ImageIcon className="size-4 text-muted-foreground" /></div>
                       )}
                       <div>
@@ -431,10 +506,12 @@ function ProductsTab() {
 }
 
 function ProductForm({ initial, onClose, onSaved }: { initial: any; onClose: () => void; onSaved: () => void }) {
+  const initialImages: string[] = initial?.images ?? [];
+  const initialUrls: string[] = initial?.imageUrls ?? [];
   const [f, setF] = useState({
     name: initial?.name ?? "",
     description: initial?.description ?? "",
-    images: (initial?.images ?? []).join("\n"),
+    images: initialImages.filter((s) => /^https?:\/\//i.test(s)).join("\n"),
     dimensions: initial?.dimensions ?? "",
     materials: initial?.materials ?? "",
     frameType: initial?.frame_type ?? "",
@@ -442,13 +519,52 @@ function ProductForm({ initial, onClose, onSaved }: { initial: any; onClose: () 
     price: String(initial?.price ?? ""),
     inventory: String(initial?.inventory ?? "0"),
   });
+  // Uploaded artwork: stored private path + a signed preview URL.
+  const [uploads, setUploads] = useState<{ ref: string; url: string }[]>(
+    initialImages
+      .map((ref, i) => ({ ref, url: initialUrls[i] ?? "" }))
+      .filter((u) => !/^https?:\/\//i.test(u.ref)),
+  );
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files).slice(0, 6)) {
+        if (file.size > 15 * 1024 * 1024) {
+          toast.error(`${file.name} is larger than 15MB.`);
+          continue;
+        }
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+          reader.onerror = () => reject(new Error("Could not read that file."));
+          reader.readAsDataURL(file);
+        });
+        const res = await artisanUploadArtwork({
+          data: { fileName: file.name, contentType: file.type || "image/jpeg", base64 },
+        });
+        setUploads((prev) => [...prev, { ref: res.path, url: res.url ?? "" }]);
+      }
+      toast.success("Artwork uploaded");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const mut = useMutation({
     mutationFn: () => {
       const payload = {
         name: f.name,
         description: f.description,
-        images: f.images.split("\n").map((s: string) => s.trim()).filter(Boolean),
+        images: [
+          ...uploads.map((u) => u.ref),
+          ...f.images.split("\n").map((s: string) => s.trim()).filter(Boolean),
+        ],
+
         dimensions: f.dimensions,
         materials: f.materials,
         frameType: f.frameType,
@@ -485,7 +601,49 @@ function ProductForm({ initial, onClose, onSaved }: { initial: any; onClose: () 
         <Field label="Frame type"><Input value={f.frameType} onChange={(e) => setF({ ...f, frameType: e.target.value })} /></Field>
         <Field label="Design style"><Input value={f.designStyle} onChange={(e) => setF({ ...f, designStyle: e.target.value })} placeholder="Modern, Luxury…" /></Field>
       </div>
-      <Field label="Image URLs (one per line)"><Textarea rows={3} value={f.images} onChange={(e) => setF({ ...f, images: e.target.value })} placeholder="https://…" /></Field>
+      <Field label="Upload artwork images">
+        <div className="space-y-3">
+          <Input
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={uploading}
+            onChange={(e) => {
+              void handleFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          {uploading && (
+            <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" /> Uploading…
+            </p>
+          )}
+          {uploads.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              {uploads.map((u) => (
+                <div key={u.ref} className="relative">
+                  {u.url ? (
+                    <img src={u.url} alt="Uploaded artwork" className="size-20 rounded-md object-cover" />
+                  ) : (
+                    <div className="flex size-20 items-center justify-center rounded-md bg-secondary">
+                      <ImageIcon className="size-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setUploads((prev) => prev.filter((x) => x.ref !== u.ref))}
+                    className="absolute -right-2 -top-2 rounded-full bg-background p-1 text-muted-foreground hover:text-red-400"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Field>
+      <Field label="Or image URLs (one per line)"><Textarea rows={3} value={f.images} onChange={(e) => setF({ ...f, images: e.target.value })} placeholder="https://…" /></Field>
+
       <Field label="Description"><Textarea rows={3} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
       <p className="text-[11px] text-muted-foreground">Standard products are priced between 100,000 and 1,000,000 RWF (VAT included).</p>
       <div className="flex gap-3">
@@ -677,8 +835,93 @@ function AdvertisingTab() {
 
 // ── Profile ────────────────────────────────────────────────────────────────────
 function ProfileTab() {
-  return <p className="rounded-lg border border-border bg-card/40 p-6 text-sm text-muted-foreground">Profile editing is available after admin approval. Contact the SAFIA team to update your details.</p>;
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["artisan-profile"], queryFn: () => artisanGetProfile() });
+  const [f, setF] = useState<null | {
+    fullName: string;
+    bio: string;
+    photoUrl: string;
+    location: string;
+    skills: string;
+    yearsExperience: string;
+    instagram: string;
+    facebook: string;
+    website: string;
+  }>(null);
+
+  const p: any = q.data?.profile;
+  useEffect(() => {
+    if (!p || f) return;
+    const social = (p.social_links ?? {}) as Record<string, string>;
+    setF({
+      fullName: p.full_name ?? "",
+      bio: p.bio ?? "",
+      photoUrl: p.photo_url ?? "",
+      location: p.location ?? "",
+      skills: (p.skills ?? []).join(", "),
+      yearsExperience: String(p.years_experience ?? 0),
+      instagram: social["instagram"] ?? "",
+      facebook: social["facebook"] ?? "",
+      website: social["website"] ?? "",
+    });
+  }, [p, f]);
+
+  const mut = useMutation({
+    mutationFn: () =>
+      artisanUpdateProfile({
+        data: {
+          fullName: f!.fullName,
+          bio: f!.bio,
+          photoUrl: f!.photoUrl,
+          location: f!.location,
+          skills: f!.skills.split(",").map((s) => s.trim()).filter(Boolean),
+          yearsExperience: Number(f!.yearsExperience) || 0,
+          socialLinks: {
+            ...(f!.instagram && { instagram: f!.instagram }),
+            ...(f!.facebook && { facebook: f!.facebook }),
+            ...(f!.website && { website: f!.website }),
+          },
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Profile updated");
+      qc.invalidateQueries({ queryKey: ["artisan-profile"] });
+      qc.invalidateQueries({ queryKey: ["artisan-session"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (q.isLoading) return <Spinner />;
+  if (q.isError) return <ErrorBox message={(q.error as Error).message} />;
+  if (!f) return <Spinner />;
+
+  return (
+    <form
+      className="space-y-4 rounded-lg border border-border bg-card/40 p-6"
+      onSubmit={(e) => {
+        e.preventDefault();
+        mut.mutate();
+      }}
+    >
+      <h2 className="font-display text-2xl">My profile</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Full name *"><Input value={f.fullName} onChange={(e) => setF({ ...f, fullName: e.target.value })} required /></Field>
+        <Field label="Location"><Input value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="City, Country" /></Field>
+        <Field label="Years of experience"><Input type="number" min={0} value={f.yearsExperience} onChange={(e) => setF({ ...f, yearsExperience: e.target.value })} /></Field>
+        <Field label="Skills (comma separated)"><Input value={f.skills} onChange={(e) => setF({ ...f, skills: e.target.value })} /></Field>
+        <Field label="Profile photo URL"><Input value={f.photoUrl} onChange={(e) => setF({ ...f, photoUrl: e.target.value })} placeholder="https://…" /></Field>
+        <Field label="Instagram"><Input value={f.instagram} onChange={(e) => setF({ ...f, instagram: e.target.value })} /></Field>
+        <Field label="Facebook"><Input value={f.facebook} onChange={(e) => setF({ ...f, facebook: e.target.value })} /></Field>
+        <Field label="Website"><Input value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} /></Field>
+      </div>
+      <Field label="Biography"><Textarea rows={4} value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} /></Field>
+      <Button type="submit" className="bg-sunset text-primary-foreground" disabled={mut.isPending}>
+        {mut.isPending && <Loader2 className="mr-2 size-4 animate-spin" />} Save profile
+      </Button>
+    </form>
+  );
 }
+
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon: any }) {
