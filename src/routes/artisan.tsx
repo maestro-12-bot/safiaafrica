@@ -506,10 +506,12 @@ function ProductsTab() {
 }
 
 function ProductForm({ initial, onClose, onSaved }: { initial: any; onClose: () => void; onSaved: () => void }) {
+  const initialImages: string[] = initial?.images ?? [];
+  const initialUrls: string[] = initial?.imageUrls ?? [];
   const [f, setF] = useState({
     name: initial?.name ?? "",
     description: initial?.description ?? "",
-    images: (initial?.images ?? []).join("\n"),
+    images: initialImages.filter((s) => /^https?:\/\//i.test(s)).join("\n"),
     dimensions: initial?.dimensions ?? "",
     materials: initial?.materials ?? "",
     frameType: initial?.frame_type ?? "",
@@ -517,13 +519,52 @@ function ProductForm({ initial, onClose, onSaved }: { initial: any; onClose: () 
     price: String(initial?.price ?? ""),
     inventory: String(initial?.inventory ?? "0"),
   });
+  // Uploaded artwork: stored private path + a signed preview URL.
+  const [uploads, setUploads] = useState<{ ref: string; url: string }[]>(
+    initialImages
+      .map((ref, i) => ({ ref, url: initialUrls[i] ?? "" }))
+      .filter((u) => !/^https?:\/\//i.test(u.ref)),
+  );
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files).slice(0, 6)) {
+        if (file.size > 15 * 1024 * 1024) {
+          toast.error(`${file.name} is larger than 15MB.`);
+          continue;
+        }
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+          reader.onerror = () => reject(new Error("Could not read that file."));
+          reader.readAsDataURL(file);
+        });
+        const res = await artisanUploadArtwork({
+          data: { fileName: file.name, contentType: file.type || "image/jpeg", base64 },
+        });
+        setUploads((prev) => [...prev, { ref: res.path, url: res.url ?? "" }]);
+      }
+      toast.success("Artwork uploaded");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const mut = useMutation({
     mutationFn: () => {
       const payload = {
         name: f.name,
         description: f.description,
-        images: f.images.split("\n").map((s: string) => s.trim()).filter(Boolean),
+        images: [
+          ...uploads.map((u) => u.ref),
+          ...f.images.split("\n").map((s: string) => s.trim()).filter(Boolean),
+        ],
+
         dimensions: f.dimensions,
         materials: f.materials,
         frameType: f.frameType,
