@@ -835,8 +835,93 @@ function AdvertisingTab() {
 
 // ── Profile ────────────────────────────────────────────────────────────────────
 function ProfileTab() {
-  return <p className="rounded-lg border border-border bg-card/40 p-6 text-sm text-muted-foreground">Profile editing is available after admin approval. Contact the SAFIA team to update your details.</p>;
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["artisan-profile"], queryFn: () => artisanGetProfile() });
+  const [f, setF] = useState<null | {
+    fullName: string;
+    bio: string;
+    photoUrl: string;
+    location: string;
+    skills: string;
+    yearsExperience: string;
+    instagram: string;
+    facebook: string;
+    website: string;
+  }>(null);
+
+  const p: any = q.data?.profile;
+  useEffect(() => {
+    if (!p || f) return;
+    const social = (p.social_links ?? {}) as Record<string, string>;
+    setF({
+      fullName: p.full_name ?? "",
+      bio: p.bio ?? "",
+      photoUrl: p.photo_url ?? "",
+      location: p.location ?? "",
+      skills: (p.skills ?? []).join(", "),
+      yearsExperience: String(p.years_experience ?? 0),
+      instagram: social["instagram"] ?? "",
+      facebook: social["facebook"] ?? "",
+      website: social["website"] ?? "",
+    });
+  }, [p, f]);
+
+  const mut = useMutation({
+    mutationFn: () =>
+      artisanUpdateProfile({
+        data: {
+          fullName: f!.fullName,
+          bio: f!.bio,
+          photoUrl: f!.photoUrl,
+          location: f!.location,
+          skills: f!.skills.split(",").map((s) => s.trim()).filter(Boolean),
+          yearsExperience: Number(f!.yearsExperience) || 0,
+          socialLinks: {
+            ...(f!.instagram && { instagram: f!.instagram }),
+            ...(f!.facebook && { facebook: f!.facebook }),
+            ...(f!.website && { website: f!.website }),
+          },
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Profile updated");
+      qc.invalidateQueries({ queryKey: ["artisan-profile"] });
+      qc.invalidateQueries({ queryKey: ["artisan-session"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (q.isLoading) return <Spinner />;
+  if (q.isError) return <ErrorBox message={(q.error as Error).message} />;
+  if (!f) return <Spinner />;
+
+  return (
+    <form
+      className="space-y-4 rounded-lg border border-border bg-card/40 p-6"
+      onSubmit={(e) => {
+        e.preventDefault();
+        mut.mutate();
+      }}
+    >
+      <h2 className="font-display text-2xl">My profile</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Full name *"><Input value={f.fullName} onChange={(e) => setF({ ...f, fullName: e.target.value })} required /></Field>
+        <Field label="Location"><Input value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="City, Country" /></Field>
+        <Field label="Years of experience"><Input type="number" min={0} value={f.yearsExperience} onChange={(e) => setF({ ...f, yearsExperience: e.target.value })} /></Field>
+        <Field label="Skills (comma separated)"><Input value={f.skills} onChange={(e) => setF({ ...f, skills: e.target.value })} /></Field>
+        <Field label="Profile photo URL"><Input value={f.photoUrl} onChange={(e) => setF({ ...f, photoUrl: e.target.value })} placeholder="https://…" /></Field>
+        <Field label="Instagram"><Input value={f.instagram} onChange={(e) => setF({ ...f, instagram: e.target.value })} /></Field>
+        <Field label="Facebook"><Input value={f.facebook} onChange={(e) => setF({ ...f, facebook: e.target.value })} /></Field>
+        <Field label="Website"><Input value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} /></Field>
+      </div>
+      <Field label="Biography"><Textarea rows={4} value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} /></Field>
+      <Button type="submit" className="bg-sunset text-primary-foreground" disabled={mut.isPending}>
+        {mut.isPending && <Loader2 className="mr-2 size-4 animate-spin" />} Save profile
+      </Button>
+    </form>
+  );
 }
+
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon: any }) {
