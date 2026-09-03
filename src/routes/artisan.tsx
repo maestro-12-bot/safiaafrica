@@ -28,7 +28,7 @@ import {
   UserPlus,
   Wallet,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -37,20 +37,27 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatRWF } from "@/data/catalog";
 import { useLocale } from "@/lib/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import {
   artisanAdvertising,
   artisanCreateProduct,
   artisanDashboard,
   artisanDeleteProduct,
   artisanEarnings,
+  artisanGetProfile,
   artisanListProducts,
   artisanLogin,
   artisanLogout,
+  artisanOAuthSync,
   artisanRegister,
   artisanRequestWithdrawal,
   artisanSessionStatus,
   artisanUpdateProduct,
+  artisanUpdateProfile,
+  artisanUploadArtwork,
 } from "@/lib/artisan.functions";
+
 
 export const Route = createFileRoute("/artisan")({
   head: () => ({
