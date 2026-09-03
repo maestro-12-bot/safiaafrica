@@ -162,10 +162,13 @@ export const artisanOAuthSync = createServerFn({ method: "POST" })
     let artisanId = existing?.id as string | undefined;
     if (existing) {
       if (existing.status === "suspended") throw new Error("Your artisan account is suspended.");
-      await supabase
-        .from("artisans")
-        .update({ auth_user_id: user.id, provider, photo_url: photo ?? undefined })
-        .eq("id", existing.id);
+      const patch: { auth_user_id: string; provider: string; photo_url?: string } = {
+        auth_user_id: user.id,
+        provider,
+      };
+      if (photo) patch.photo_url = photo;
+      await supabase.from("artisans").update(patch).eq("id", existing.id);
+
     } else {
       const { data: row, error } = await supabase
         .from("artisans")
