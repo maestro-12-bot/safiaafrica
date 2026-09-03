@@ -601,7 +601,49 @@ function ProductForm({ initial, onClose, onSaved }: { initial: any; onClose: () 
         <Field label="Frame type"><Input value={f.frameType} onChange={(e) => setF({ ...f, frameType: e.target.value })} /></Field>
         <Field label="Design style"><Input value={f.designStyle} onChange={(e) => setF({ ...f, designStyle: e.target.value })} placeholder="Modern, Luxury…" /></Field>
       </div>
-      <Field label="Image URLs (one per line)"><Textarea rows={3} value={f.images} onChange={(e) => setF({ ...f, images: e.target.value })} placeholder="https://…" /></Field>
+      <Field label="Upload artwork images">
+        <div className="space-y-3">
+          <Input
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={uploading}
+            onChange={(e) => {
+              void handleFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          {uploading && (
+            <p className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" /> Uploading…
+            </p>
+          )}
+          {uploads.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              {uploads.map((u) => (
+                <div key={u.ref} className="relative">
+                  {u.url ? (
+                    <img src={u.url} alt="Uploaded artwork" className="size-20 rounded-md object-cover" />
+                  ) : (
+                    <div className="flex size-20 items-center justify-center rounded-md bg-secondary">
+                      <ImageIcon className="size-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setUploads((prev) => prev.filter((x) => x.ref !== u.ref))}
+                    className="absolute -right-2 -top-2 rounded-full bg-background p-1 text-muted-foreground hover:text-red-400"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Field>
+      <Field label="Or image URLs (one per line)"><Textarea rows={3} value={f.images} onChange={(e) => setF({ ...f, images: e.target.value })} placeholder="https://…" /></Field>
+
       <Field label="Description"><Textarea rows={3} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
       <p className="text-[11px] text-muted-foreground">Standard products are priced between 100,000 and 1,000,000 RWF (VAT included).</p>
       <div className="flex gap-3">
