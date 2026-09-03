@@ -465,9 +465,10 @@ function ProductsTab() {
                 <tr key={p.id} className="border-t border-border">
                   <td className="p-3">
                     <div className="flex items-center gap-3">
-                      {p.images?.[0] ? (
-                        <img src={p.images[0]} alt={p.name} className="size-12 rounded-md object-cover" />
+                      {p.imageUrls?.[0] ? (
+                        <img src={p.imageUrls[0]} alt={p.name} className="size-12 rounded-md object-cover" />
                       ) : (
+
                         <div className="flex size-12 items-center justify-center rounded-md bg-secondary"><ImageIcon className="size-4 text-muted-foreground" /></div>
                       )}
                       <div>
