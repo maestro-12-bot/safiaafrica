@@ -37,6 +37,7 @@ import {
   adminRecordSale,
   adminSetArtisanStatus,
   adminSetProductStatus,
+  adminVisitors,
 } from "@/lib/admin-portal.functions";
 
 export const Route = createFileRoute("/admin")({
@@ -69,7 +70,7 @@ const STATUSES = [
   "Cancelled",
 ] as const;
 
-type Tab = "overview" | "orders" | "artisans" | "products" | "withdrawals";
+type Tab = "overview" | "orders" | "artisans" | "products" | "withdrawals" | "visitors";
 
 function Admin() {
   const qc = useQueryClient();
@@ -161,6 +162,7 @@ function Dashboard({ onSignedOut }: { onSignedOut: () => void }) {
           ["artisans", t("portal.artisans")],
           ["products", t("portal.products")],
           ["withdrawals", t("portal.withdrawals")],
+          ["visitors", t("portal.visitors")],
         ] as [Tab, string][]).map(([id, label]) => (
           <button
             key={id}
@@ -180,6 +182,7 @@ function Dashboard({ onSignedOut }: { onSignedOut: () => void }) {
         {tab === "artisans" && <ArtisansTab />}
         {tab === "products" && <ProductsTab />}
         {tab === "withdrawals" && <WithdrawalsTab />}
+        {tab === "visitors" && <VisitorsTab />}
       </div>
     </section>
   );
@@ -476,7 +479,21 @@ function ProductsTab() {
             <tbody>
               {products.map((p: any) => (
                 <tr key={p.id} className="border-t border-border">
-                  <td className="p-3 font-medium">{p.name}</td>
+                  <td className="p-3 font-medium">
+                    <div className="flex items-center gap-3">
+                      {(p.imageUrls?.[0] ?? p.images?.[0]) ? (
+                        <img
+                          src={p.imageUrls?.[0] ?? p.images?.[0]}
+                          alt={p.name}
+                          loading="lazy"
+                          className="size-12 rounded-md border border-border object-cover"
+                        />
+                      ) : (
+                        <div className="size-12 rounded-md bg-secondary" />
+                      )}
+                      <span>{p.name}</span>
+                    </div>
+                  </td>
                   <td className="p-3 text-muted-foreground">{p.artisan?.full_name ?? "—"}</td>
                   <td className="p-3 text-gold">{formatRWF(Number(p.price))}</td>
                   <td className="p-3"><StatusPill status={p.status} /></td>
@@ -501,6 +518,92 @@ function ProductsTab() {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Visitors ──────────────────────────────────────────────────────────────────
+function VisitorsTab() {
+  const q = useQuery({ queryKey: ["admin-visitors"], queryFn: () => adminVisitors() });
+  if (q.isLoading) return <Spinner />;
+  if (q.isError) return <ErrorBox />;
+
+  const d = q.data!;
+  const s: any = d.stats;
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Total Views (30d)" value={String(s.totalViews)} />
+        <Stat label="Unique Visitors" value={String(s.uniqueVisitors)} />
+        <Stat label="Views Today" value={String(s.viewsToday ?? 0)} />
+        <Stat label="Top Page" value={d.topPages?.[0]?.label ?? "—"} />
+      </div>
+
+      <div className="rounded-lg border border-border bg-card/40 p-6">
+        <p className="text-[10px] tracking-luxe text-gold">Traffic</p>
+        <h3 className="mt-1 font-display text-2xl">Views over the last 30 days</h3>
+        <div className="mt-6 h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={d.daily}>
+              <defs>
+                <linearGradient id="adm-vis" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#c9a227" stopOpacity={0.5} />
+                  <stop offset="95%" stopColor="#c9a227" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis dataKey="label" stroke="#888" fontSize={11} />
+              <YAxis stroke="#888" fontSize={11} allowDecimals={false} />
+              <Tooltip contentStyle={{ background: "#1b1b1f", border: "1px solid #333" }} />
+              <Area type="monotone" dataKey="views" stroke="#c9a227" fill="url(#adm-vis)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        {([["Top pages", d.topPages], ["Top referrers", d.topReferrers]] as const).map(([title, rows]) => (
+          <div key={title} className="rounded-lg border border-border bg-card/40 p-6">
+            <h3 className="font-display text-xl">{title}</h3>
+            {(rows ?? []).length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">No data yet.</p>
+            ) : (
+              <ul className="mt-4 space-y-2 text-sm">
+                {(rows as any[]).map((r) => (
+                  <li key={r.label} className="flex justify-between gap-4 border-b border-border/60 pb-2">
+                    <span className="truncate text-muted-foreground">{r.label}</span>
+                    <span className="text-gold">{r.count}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-lg border border-border bg-card/40 p-6">
+        <h3 className="font-display text-xl">Recent visits</h3>
+        {((d as any).recent ?? []).length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">No visits recorded yet.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[520px] text-left text-sm">
+              <thead className="text-[10px] tracking-luxe text-muted-foreground">
+                <tr><th className="py-2">Page</th><th className="py-2">Referrer</th><th className="py-2">When</th></tr>
+              </thead>
+              <tbody>
+                {((d as any).recent as any[]).slice(0, 25).map((r) => (
+                  <tr key={r.id} className="border-t border-border">
+                    <td className="py-2">{r.path}</td>
+                    <td className="py-2 text-muted-foreground">{r.referrer || "direct"}</td>
+                    <td className="py-2 text-muted-foreground">{new Date(r.created_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
