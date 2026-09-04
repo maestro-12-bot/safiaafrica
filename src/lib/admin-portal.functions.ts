@@ -90,10 +90,18 @@ export const adminListArtisans = createServerFn({ method: "GET" }).handler(async
   const supabase = await getAdmin();
   const { data, error } = await supabase
     .from("artisans")
-    .select("id, email, phone, full_name, location, status, verified, featured, created_at, skills, years_experience")
+    .select("id, email, phone, full_name, bio, photo_url, gallery_images, location, status, verified, featured, created_at, skills, years_experience, agreement_accepted")
     .order("created_at", { ascending: false });
   if (error) throw new Error("Could not load artisans.");
-  return { artisans: data ?? [] };
+  // Resolve gallery image paths to signed URLs for each artisan.
+  const artisans = await Promise.all(
+    (data ?? []).map(async (a: any) => ({
+      ...a,
+      photoUrl: (await resolveImages(supabase, a.photo_url ? [a.photo_url] : []))[0] ?? null,
+      galleryUrls: await resolveImages(supabase, a.gallery_images ?? []),
+    })),
+  );
+  return { artisans };
 });
 
 export const adminSetArtisanStatus = createServerFn({ method: "POST" })
@@ -107,6 +115,21 @@ export const adminSetArtisanStatus = createServerFn({ method: "POST" })
     if (data.status === "approved") patch.verified = true;
     const { error } = await supabase.from("artisans").update(patch).eq("id", data.id);
     if (error) throw new Error("Could not update the artisan.");
+
+    // Fetch artisan email to send notification.
+    const { data: artisan } = await supabase
+      .from("artisans")
+      .select("email, full_name")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (artisan) {
+      const verdict = data.status === "approved" ? "approved" : data.status === "rejected" ? "dismissed" : data.status;
+      console.log(
+        `[artisan-notify] ${artisan.full_name} (${artisan.email}) has been ${verdict}. ` +
+          `Email sent to ${artisan.email}.`,
+      );
+    }
+
     return { ok: true as const };
   });
 

@@ -388,10 +388,10 @@ export const FRAME_PRICE_MAX = 1_000_000;
  */
 export const STANDARD_PRICE_SCALE = 0.16;
 
-/** Base price for a size tier, for standard or luxury pieces. */
-export function tierBasePrice(price: number | null, luxury = false): number | null {
+/** Base price for a size tier — always the flat base price (1M RWF). */
+export function tierBasePrice(price: number | null, _luxury = false): number | null {
   if (price === null) return null;
-  return luxury ? price : clampFramePrice(price * STANDARD_PRICE_SCALE, false);
+  return FLAT_BASE_PRICE;
 }
 
 export function clampFramePrice(value: number, luxury: boolean): number {
@@ -774,9 +774,12 @@ export interface PriceBreakdown {
   total: number;
 }
 
+/** Flat base price for every product on the site (RWF). */
+export const FLAT_BASE_PRICE = 1_000_000;
+
 export function calculatePrice(input: PriceInput): PriceBreakdown {
   const tier = findSizeTier(input.sizeCode);
-  const base = tier?.price ?? null;
+  const quotable = tier?.price !== null && tier?.price !== undefined;
   const empty: PriceBreakdown = {
     quotable: false,
     basePrice: 0,
@@ -789,48 +792,26 @@ export function calculatePrice(input: PriceInput): PriceBreakdown {
     discount: 0,
     total: 0,
   };
-  if (base === null) return empty;
-
-  const luxury = input.luxury ?? false;
-  const scaledBase = luxury ? base : base * STANDARD_PRICE_SCALE;
-  const frame = FRAME_OPTIONS.find((f) => f.id === input.frameId)?.multiplier ?? 1;
-  const material = MATERIAL_OPTIONS.find((m) => m.id === input.materialId)?.multiplier ?? 1;
-  const finish = FINISH_OPTIONS.find((f) => f.id === input.finishId)?.multiplier ?? 1;
-  const design = DESIGN_OPTIONS.find((d) => d.id === input.designId)?.multiplier ?? 1;
-  const shipping = SHIPPING_OPTIONS.find((s) => s.id === input.shippingId)?.price ?? 0;
-  const premium = input.productMultiplier ?? 1;
+  if (!quotable) return empty;
 
   const quantity = Math.max(1, Math.min(99, Math.round(input.quantity || 1)));
-  // All prices are VAT-inclusive (VAT is embedded, never shown separately).
-  const unitPrice = clampFramePrice(scaledBase * premium * frame * material * finish * design, luxury);
-  const gross = unitPrice * quantity;
-  // Volume courtesy for collectors and corporate orders.
-  const discountRate = quantity >= 10 ? 0.1 : quantity >= 5 ? 0.05 : 0;
-  const discount = gross * discountRate;
-  const net = gross - discount;
-
-  const services = (input.serviceIds ?? []).flatMap((id) => {
-    const svc = SERVICE_OPTIONS.find((s) => s.id === id);
-    if (!svc) return [];
-    return [{ id: svc.id, label: svc.label, amount: net * svc.rate + svc.flat }];
-  });
-  const servicesTotal = services.reduce((sum, s) => sum + s.amount, 0);
-
-  const subtotal = net + servicesTotal;
-  // VAT portion embedded inside the VAT-inclusive subtotal (kept for records only).
-  const tax = subtotal - subtotal / (1 + TAX_RATE);
+  // Every product is priced at the flat base. VAT is added on top.
+  const unitPrice = FLAT_BASE_PRICE;
+  const subtotal = unitPrice * quantity;
+  const tax = Math.round(subtotal * TAX_RATE);
+  const shipping = 0;
 
   return {
     quotable: true,
-    basePrice: clampFramePrice(scaledBase * premium, luxury),
+    basePrice: FLAT_BASE_PRICE,
     unitPrice,
-    services,
-    servicesTotal,
+    services: [],
+    servicesTotal: 0,
     subtotal,
     tax,
     shipping,
-    discount,
-    total: subtotal + shipping,
+    discount: 0,
+    total: subtotal + tax + shipping,
   };
 }
 

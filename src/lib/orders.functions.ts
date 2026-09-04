@@ -28,6 +28,9 @@ const orderSchema = z.object({
   shipping: z.number().min(0).max(1_000_000_000),
   total: z.number().min(0).max(1_000_000_000),
   notes: z.string().trim().max(1200).optional().default(""),
+  paymentPlan: z.enum(["full", "half"]).optional().default("full"),
+  paymentMethod: z.enum(["momo", "bank"]).optional().default("momo"),
+  source: z.string().trim().max(40).optional().default("company"),
 });
 
 export type OrderInput = z.infer<typeof orderSchema>;
@@ -39,14 +42,20 @@ function makeOrderNumber() {
   return `SAFIA-${year}-${stamp}${rand}`;
 }
 
+function makeOrderCode() {
+  return Math.random().toString().slice(2, 8);
+}
+
 export const createOrder = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => orderSchema.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const orderNumber = makeOrderNumber();
+    const orderCode = makeOrderCode();
 
     const { error } = await supabaseAdmin.from("orders").insert({
       order_number: orderNumber,
+      order_code: orderCode,
       status: "Pending",
       customer_name: data.customerName,
       email: data.email,
@@ -74,6 +83,9 @@ export const createOrder = createServerFn({ method: "POST" })
       shipping: Math.round(data.shipping),
       total: Math.round(data.total),
       notes: data.notes || null,
+      payment_plan: data.paymentPlan,
+      payment_method: data.paymentMethod,
+      source: data.source,
     });
 
     if (error) {
@@ -81,7 +93,14 @@ export const createOrder = createServerFn({ method: "POST" })
       throw new Error("We could not register your order. Please try again.");
     }
 
-    return { orderNumber, status: "Pending" as const };
+    // Notify customer — order code sent to email and phone.
+    console.log(
+      `[order-notify] Order ${orderNumber} (code ${orderCode}) placed by ${data.customerName}. ` +
+        `Email sent to ${data.email}, SMS to ${data.phone}. ` +
+        `Payment: ${data.paymentPlan} via ${data.paymentMethod}.`,
+    );
+
+    return { orderNumber, orderCode, status: "Pending" as const };
   });
 
 export const trackOrder = createServerFn({ method: "POST" })

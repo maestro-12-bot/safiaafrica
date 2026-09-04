@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck, Smartphone, Building2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -103,6 +103,8 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
 
   const [shipping, setShipping] = useState(SHIPPING_OPTIONS[0]!.id);
   const [notes, setNotes] = useState("");
+  const [paymentPlan, setPaymentPlan] = useState<"full" | "half">("full");
+  const [paymentMethod, setPaymentMethod] = useState<"momo" | "bank">("momo");
 
   const [customer, setCustomer] = useState({
     customerName: "",
@@ -116,7 +118,7 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
     companyName: "",
   });
 
-  const [placed, setPlaced] = useState<{ orderNumber: string } | null>(null);
+  const [placed, setPlaced] = useState<{ orderNumber: string; orderCode: string } | null>(null);
 
   const price = useMemo(
     () =>
@@ -183,6 +185,9 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
           tax: price.tax,
           shipping: price.shipping,
           total: price.total,
+          paymentPlan,
+          paymentMethod,
+          source: "company",
           notes: [
             notes,
             `Shipping: ${shippingLabel}`,
@@ -198,7 +203,7 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
       });
     },
     onSuccess: (res) => {
-      setPlaced({ orderNumber: res.orderNumber });
+      setPlaced({ orderNumber: res.orderNumber, orderCode: res.orderCode });
       toast.success(`Order ${res.orderNumber} registered`);
     },
     onError: (e: Error) => toast.error(e.message || "Something went wrong"),
@@ -232,8 +237,11 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
             </p>
             <p className="mt-6 text-[10px] tracking-luxe text-muted-foreground">Order number</p>
             <p className="font-display text-2xl text-gold">{placed.orderNumber}</p>
-            <p className="mt-6 text-xs text-muted-foreground">
-              Keep this number — you can follow production status on the Track Order page.
+            <p className="mt-4 text-[10px] tracking-luxe text-muted-foreground">Your order code</p>
+            <p className="font-display text-3xl tracking-widest text-gold">{placed.orderCode}</p>
+            <p className="mx-auto mt-4 max-w-sm rounded-lg border border-gold/25 bg-secondary/40 p-3 text-xs text-muted-foreground">
+              Your order code has been sent to <span className="text-foreground">{customer.email}</span> and{" "}
+              <span className="text-foreground">{customer.phone}</span>. Keep it to track your order.
             </p>
             <Button
               className="mt-6 bg-sunset text-primary-foreground"
@@ -486,6 +494,77 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
                     </Field>
                   </div>
                 </section>
+
+                <section className="space-y-4">
+                  <p className="text-[10px] tracking-luxe text-gold">Payment</p>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] tracking-luxe text-muted-foreground">Payment plan</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { id: "full", label: "Full now", desc: "1M + VAT" },
+                        { id: "half", label: "Half now, half after", desc: "50% now, 50% on delivery" },
+                      ] as const).map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setPaymentPlan(opt.id)}
+                          className={`rounded-md border px-3 py-2.5 text-left transition-colors ${
+                            paymentPlan === opt.id
+                              ? "border-gold bg-secondary text-foreground"
+                              : "border-border text-muted-foreground hover:border-gold/50"
+                          }`}
+                        >
+                          <span className="block text-xs font-semibold">{opt.label}</span>
+                          <span className="block text-[10px] opacity-70">{opt.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] tracking-luxe text-muted-foreground">Payment method</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("momo")}
+                        className={`flex items-center gap-2 rounded-md border px-3 py-2.5 text-left transition-colors ${
+                          paymentMethod === "momo"
+                            ? "border-gold bg-secondary text-foreground"
+                            : "border-border text-muted-foreground hover:border-gold/50"
+                        }`}
+                      >
+                        <Smartphone className="size-4 text-gold" />
+                        <div>
+                          <span className="block text-xs font-semibold">MoMo</span>
+                          <span className="block text-[10px] opacity-70">0786314807</span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("bank")}
+                        className={`flex items-center gap-2 rounded-md border px-3 py-2.5 text-left transition-colors ${
+                          paymentMethod === "bank"
+                            ? "border-gold bg-secondary text-foreground"
+                            : "border-border text-muted-foreground hover:border-gold/50"
+                        }`}
+                      >
+                        <Building2 className="size-4 text-gold" />
+                        <div>
+                          <span className="block text-xs font-semibold">Bank</span>
+                          <span className="block text-[10px] opacity-70">Equity · 4035200051282</span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                  {paymentMethod === "momo" ? (
+                    <div className="rounded-lg border border-gold/25 bg-secondary/40 p-3 text-xs text-muted-foreground">
+                      Send your payment via MTN MoMo to <span className="text-foreground font-medium">0786314807</span> (Robeni Mawuwa).
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-gold/25 bg-secondary/40 p-3 text-xs text-muted-foreground">
+                      Transfer to Equity Bank, account <span className="text-foreground font-medium">4035200051282</span> (Robeni Mawuwa).
+                    </div>
+                  )}
+                </section>
               </div>
 
               <aside className="h-fit rounded-lg border border-border bg-background/60 p-5 lg:sticky lg:top-2">
@@ -512,23 +591,25 @@ export function OrderDialog({ product, open, onOpenChange }: Props) {
                 {price.quotable ? (
                   <dl className="space-y-2 text-sm">
                     <Row label="Unit price" value={money(price.unitPrice)} strong />
-                    {price.discount > 0 && (
-                      <Row label="Volume discount" value={`− ${money(price.discount)}`} />
-                    )}
-                    {price.services.map((s) => (
-                      <Row key={s.id} label={s.label} value={money(s.amount)} />
-                    ))}
-
-                    <Row label="Shipping" value={money(price.shipping)} />
+                    <Row label="Quantity" value={String(quantity)} />
+                    <Row label="Subtotal" value={money(price.subtotal)} />
+                    <Row label="VAT (18%)" value={money(price.tax)} />
+                    {price.shipping > 0 && <Row label="Shipping" value={money(price.shipping)} />}
                     <div className="my-3 hairline" />
                     <div className="flex items-baseline justify-between">
-                      <span className="text-[10px] tracking-luxe text-muted-foreground">Total</span>
+                      <span className="text-[10px] tracking-luxe text-muted-foreground">Total (1M + VAT)</span>
                       <span className="font-display text-2xl text-gold">
                         {money(price.total)}
                       </span>
                     </div>
+                    {paymentPlan === "half" && (
+                      <div className="mt-2 rounded-md border border-gold/30 bg-secondary/40 p-2.5 text-xs">
+                        <Row label="Due now (50%)" value={money(Math.round(price.total / 2))} strong />
+                        <Row label="Due on delivery (50%)" value={money(Math.round(price.total / 2))} />
+                      </div>
+                    )}
                     <p className="mt-1 text-[10px] text-muted-foreground">
-                      VAT included · final payable amount
+                      Pay via {paymentMethod === "momo" ? "MoMo · 0786314807" : "Bank · 4035200051282"}
                     </p>
                   </dl>
                 ) : (

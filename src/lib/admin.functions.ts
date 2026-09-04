@@ -67,7 +67,7 @@ export const listOrders = createServerFn({ method: "GET" }).handler(async () => 
   const { data, error } = await supabaseAdmin
     .from("orders")
     .select(
-      "id, order_number, status, customer_name, email, phone, country, product_name, collection, size_code, quantity, total, currency, created_at",
+      "id, order_number, order_code, status, customer_name, email, phone, country, product_name, collection, size_code, quantity, total, currency, payment_plan, payment_method, source, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(500);

@@ -72,14 +72,20 @@ export const artisanRegister = createServerFn({ method: "POST" })
         password: z.string().min(6).max(200),
         bio: z.string().max(2000).optional().default(""),
         photoUrl: z.string().max(1000).optional().default(""),
+        galleryImages: z.array(z.string().max(2000)).max(20).optional().default([]),
         location: z.string().trim().max(160).optional().default(""),
         skills: z.array(z.string().max(80)).max(20).optional().default([]),
         yearsExperience: z.number().int().min(0).max(90).optional().default(0),
         socialLinks: z.record(z.string(), z.string().max(300)).optional().default({}),
+        productPrice: z.number().min(0).max(100_000_000).optional().default(0),
+        agreementAccepted: z.boolean().optional().default(false),
       })
       .parse(data),
   )
   .handler(async ({ data }) => {
+    if (!data.agreementAccepted) {
+      throw new Error("You must accept the 50/50 profit-split agreement to submit your request.");
+    }
     const supabase = await getAdmin();
     const { data: existing } = await supabase
       .from("artisans")
@@ -95,12 +101,14 @@ export const artisanRegister = createServerFn({ method: "POST" })
       password_hash: hash(data.password),
       bio: data.bio || null,
       photo_url: data.photoUrl || null,
+      gallery_images: data.galleryImages,
       location: data.location || null,
       skills: data.skills,
       years_experience: data.yearsExperience,
       social_links: data.socialLinks,
       status: "pending",
       verified: false,
+      agreement_accepted: data.agreementAccepted,
     };
     const { data: row, error } = await supabase
       .from("artisans")
@@ -126,6 +134,10 @@ export const artisanLogin = createServerFn({ method: "POST" })
       return { ok: false as const };
     }
     if (artisan.status === "suspended") throw new Error("Your artisan account is suspended.");
+    if (artisan.status === "rejected") throw new Error("Your request has been dismissed. Please contact SAFIA for more information.");
+    if (artisan.status !== "approved") {
+      return { ok: false as const, reason: "not_approved" as const, status: artisan.status };
+    }
     const session = await useSession<ArtisanSession>(sessionConfig());
     await session.update({ artisanId: artisan.id });
     return { ok: true as const, status: artisan.status };
@@ -211,6 +223,60 @@ export const artisanSessionStatus = createServerFn({ method: "GET" }).handler(as
   return { authenticated: true as const, artisan };
 });
 
+/**
+ * Upload photos during registration — verifies email+password since the
+ * artisan is not yet approved and cannot open a normal session.
+ */
+export const artisanRegistrationUpload = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        email: z.string().trim().email(),
+        password: z.string().min(1),
+        kind: z.enum(["profile", "gallery"]),
+        fileName: z.string().trim().min(1).max(200),
+        contentType: z.string().trim().max(120),
+        base64: z.string().min(16).max(22_000_000),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const supabase = await getAdmin();
+    const { data: artisan } = await supabase
+      .from("artisans")
+      .select("id, password_hash")
+      .eq("email", data.email.toLowerCase())
+      .maybeSingle();
+    if (!artisan || !artisan.password_hash || !matches(data.password, artisan.password_hash)) {
+      throw new Error("Invalid credentials for upload.");
+    }
+    const safe = data.fileName.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-80);
+    const prefix = data.kind === "profile" ? "profile" : "gallery";
+    const path = `${artisan.id}/${prefix}-${Date.now()}-${safe}`;
+    const bytes = Buffer.from(data.base64, "base64");
+    const { error: upErr } = await supabase.storage
+      .from(ARTWORK_BUCKET)
+      .upload(path, bytes, { contentType: data.contentType || "image/jpeg", upsert: false });
+    if (upErr) throw new Error("Could not upload that image.");
+
+    if (data.kind === "profile") {
+      await supabase.from("artisans").update({ photo_url: path }).eq("id", artisan.id);
+    } else {
+      const { data: row } = await supabase
+        .from("artisans")
+        .select("gallery_images")
+        .eq("id", artisan.id)
+        .maybeSingle();
+      const existing: string[] = row?.gallery_images ?? [];
+      await supabase
+        .from("artisans")
+        .update({ gallery_images: [...existing, path] })
+        .eq("id", artisan.id);
+    }
+    const [url] = await resolveImages(supabase, [path]);
+    return { ok: true as const, path, url: url ?? null };
+  });
+
 // ── Profile ──────────────────────────────────────────────────────────────────
 export const artisanGetProfile = createServerFn({ method: "GET" }).handler(async () => {
   const session = await requireArtisan();
@@ -221,7 +287,9 @@ export const artisanGetProfile = createServerFn({ method: "GET" }).handler(async
     .eq("id", session.data.artisanId!)
     .maybeSingle();
   if (error) throw new Error("Could not load your profile.");
-  return { profile: data };
+  // Resolve gallery image paths to signed URLs for display.
+  const galleryUrls = await resolveImages(supabase, data?.gallery_images ?? []);
+  return { profile: data, galleryUrls };
 });
 
 export const artisanUpdateProfile = createServerFn({ method: "POST" })
@@ -231,6 +299,7 @@ export const artisanUpdateProfile = createServerFn({ method: "POST" })
         fullName: z.string().trim().min(2).max(120),
         bio: z.string().max(2000).optional().default(""),
         photoUrl: z.string().max(1000).optional().default(""),
+        galleryImages: z.array(z.string().max(2000)).max(20).optional().default([]),
         location: z.string().trim().max(160).optional().default(""),
         skills: z.array(z.string().max(80)).max(20).optional().default([]),
         yearsExperience: z.number().int().min(0).max(90).optional().default(0),
@@ -247,6 +316,7 @@ export const artisanUpdateProfile = createServerFn({ method: "POST" })
       full_name: data.fullName,
       bio: data.bio || null,
       photo_url: data.photoUrl || null,
+      gallery_images: data.galleryImages,
       location: data.location || null,
       skills: data.skills,
       years_experience: data.yearsExperience,
@@ -284,6 +354,56 @@ export const artisanListProducts = createServerFn({ method: "GET" }).handler(asy
   );
   return { products };
 });
+
+/** Uploads a profile photo to private storage and returns its stored path + preview URL. */
+export const artisanUploadProfilePhoto = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        fileName: z.string().trim().min(1).max(200),
+        contentType: z.string().trim().max(120),
+        base64: z.string().min(16).max(22_000_000),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const session = await requireArtisan();
+    const supabase = await getAdmin();
+    const safe = data.fileName.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-80);
+    const path = `${session.data.artisanId}/profile-${Date.now()}-${safe}`;
+    const bytes = Buffer.from(data.base64, "base64");
+    const { error } = await supabase.storage
+      .from(ARTWORK_BUCKET)
+      .upload(path, bytes, { contentType: data.contentType || "image/jpeg", upsert: false });
+    if (error) throw new Error("Could not upload that image.");
+    const [url] = await resolveImages(supabase, [path]);
+    return { ok: true as const, path, url: url ?? null };
+  });
+
+/** Uploads a gallery photo to private storage and returns its stored path + preview URL. */
+export const artisanUploadGalleryImage = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        fileName: z.string().trim().min(1).max(200),
+        contentType: z.string().trim().max(120),
+        base64: z.string().min(16).max(22_000_000),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const session = await requireArtisan();
+    const supabase = await getAdmin();
+    const safe = data.fileName.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-80);
+    const path = `${session.data.artisanId}/gallery-${Date.now()}-${safe}`;
+    const bytes = Buffer.from(data.base64, "base64");
+    const { error } = await supabase.storage
+      .from(ARTWORK_BUCKET)
+      .upload(path, bytes, { contentType: data.contentType || "image/jpeg", upsert: false });
+    if (error) throw new Error("Could not upload that image.");
+    const [url] = await resolveImages(supabase, [path]);
+    return { ok: true as const, path, url: url ?? null };
+  });
 
 /** Uploads one artwork image to private storage and returns its stored path. */
 export const artisanUploadArtwork = createServerFn({ method: "POST" })

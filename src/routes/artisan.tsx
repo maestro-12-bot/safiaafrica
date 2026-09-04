@@ -56,7 +56,11 @@ import {
   artisanUpdateProduct,
   artisanUpdateProfile,
   artisanUploadArtwork,
+  artisanUploadProfilePhoto,
+  artisanUploadGalleryImage,
+  artisanRegistrationUpload,
 } from "@/lib/artisan.functions";
+import { Checkbox } from "@/components/ui/checkbox";
 
 
 export const Route = createFileRoute("/artisan")({
@@ -150,7 +154,7 @@ function ArtisanPortal() {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function AuthScreen({ onSignedIn }: { onSignedIn: () => void }) {
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "request">("login");
   return (
     <div className="mx-auto max-w-xl px-5 py-16">
       <p className="text-center text-[10px] tracking-luxe text-gold">Artisan Portal</p>
@@ -165,7 +169,7 @@ function AuthScreen({ onSignedIn }: { onSignedIn: () => void }) {
       </div>
 
       <div className="mt-8 flex justify-center gap-2">
-        {(["login", "register"] as const).map((m) => (
+        {(["login", "request"] as const).map((m) => (
           <button
             key={m}
             onClick={() => setMode(m)}
@@ -173,7 +177,7 @@ function AuthScreen({ onSignedIn }: { onSignedIn: () => void }) {
               mode === m ? "bg-sunset text-primary-foreground" : "border border-border text-muted-foreground hover:text-gold"
             }`}
           >
-            {m === "login" ? "Sign in" : "Register"}
+            {m === "login" ? "Sign in" : "Request"}
           </button>
         ))}
       </div>
@@ -249,7 +253,11 @@ function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
     mutationFn: () => artisanLogin({ data: { email, password } }),
     onSuccess: (res) => {
       if (!res.ok) {
-        toast.error("Invalid email or password.");
+        if (res.reason === "not_approved") {
+          toast.error("Your request has not been approved yet. You will be notified by email once reviewed.");
+        } else {
+          toast.error("Invalid email or password.");
+        }
         return;
       }
       toast.success("Signed in");
@@ -279,6 +287,15 @@ function LoginForm({ onSignedIn }: { onSignedIn: () => void }) {
   );
 }
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.onerror = () => reject(new Error("Could not read that file."));
+    reader.readAsDataURL(file);
+  });
+}
+
 function RegisterForm({ onSignedIn }: { onSignedIn: () => void }) {
   const [f, setF] = useState({
     email: "",
@@ -286,24 +303,33 @@ function RegisterForm({ onSignedIn }: { onSignedIn: () => void }) {
     fullName: "",
     password: "",
     bio: "",
-    photoUrl: "",
     location: "",
     skills: "",
     yearsExperience: "0",
+    productPrice: "",
     instagram: "",
     facebook: "",
     website: "",
   });
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [profilePreview, setProfilePreview] = useState<string>("");
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+  const [agreement, setAgreement] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
   const mut = useMutation({
-    mutationFn: () =>
-      artisanRegister({
+    mutationFn: async () => {
+      // 1. Register the artisan account.
+      const res = await artisanRegister({
         data: {
           email: f.email,
           phone: f.phone,
           fullName: f.fullName,
           password: f.password,
           bio: f.bio,
-          photoUrl: f.photoUrl,
+          photoUrl: "",
+          galleryImages: [],
           location: f.location,
           skills: f.skills.split(",").map((s) => s.trim()).filter(Boolean),
           yearsExperience: Number(f.yearsExperience) || 0,
@@ -312,11 +338,48 @@ function RegisterForm({ onSignedIn }: { onSignedIn: () => void }) {
             ...(f.facebook && { facebook: f.facebook }),
             ...(f.website && { website: f.website }),
           },
+          productPrice: Number(f.productPrice) || 0,
+          agreementAccepted: agreement,
         },
-      }),
-    onSuccess: async () => {
-      toast.success("Account created — signing you in");
-      await artisanLogin({ data: { email: f.email, password: f.password } });
+      });
+
+      // 2. Upload profile photo (if selected).
+      setUploading(true);
+      try {
+        if (profilePhoto) {
+          const base64 = await fileToBase64(profilePhoto);
+          await artisanRegistrationUpload({
+            data: {
+              email: f.email,
+              password: f.password,
+              kind: "profile",
+              fileName: profilePhoto.name,
+              contentType: profilePhoto.type || "image/jpeg",
+              base64,
+            },
+          });
+        }
+        // 3. Upload gallery photos.
+        for (const file of galleryFiles.slice(0, 8)) {
+          const base64 = await fileToBase64(file);
+          await artisanRegistrationUpload({
+            data: {
+              email: f.email,
+              password: f.password,
+              kind: "gallery",
+              fileName: file.name,
+              contentType: file.type || "image/jpeg",
+              base64,
+            },
+          });
+        }
+      } finally {
+        setUploading(false);
+      }
+      return res;
+    },
+    onSuccess: () => {
+      toast.success("Request submitted! You will be notified by email once reviewed.");
       onSignedIn();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -338,15 +401,89 @@ function RegisterForm({ onSignedIn }: { onSignedIn: () => void }) {
         <Field label="Location"><Input value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="City, Country" /></Field>
         <Field label="Years of experience"><Input type="number" min={0} value={f.yearsExperience} onChange={(e) => setF({ ...f, yearsExperience: e.target.value })} /></Field>
         <Field label="Skills (comma separated)"><Input value={f.skills} onChange={(e) => setF({ ...f, skills: e.target.value })} placeholder="Imigongo, Carving, Gilding" /></Field>
-        <Field label="Profile photo URL"><Input value={f.photoUrl} onChange={(e) => setF({ ...f, photoUrl: e.target.value })} placeholder="https://…" /></Field>
+        <Field label="Artwork price (RWF) *"><Input type="number" min={1000} value={f.productPrice} onChange={(e) => setF({ ...f, productPrice: e.target.value })} placeholder="e.g. 1000000" required /></Field>
         <Field label="Instagram"><Input value={f.instagram} onChange={(e) => setF({ ...f, instagram: e.target.value })} placeholder="@handle" /></Field>
         <Field label="Facebook"><Input value={f.facebook} onChange={(e) => setF({ ...f, facebook: e.target.value })} /></Field>
         <Field label="Website"><Input value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} /></Field>
       </div>
       <Field label="Biography"><Textarea rows={3} value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} /></Field>
-      <Button type="submit" className="w-full bg-sunset text-primary-foreground" disabled={mut.isPending}>
-        {mut.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
-        <UserPlus className="mr-2 size-4" /> Create artisan account
+
+      <Field label="Profile photo (from your device)">
+        <div className="flex items-center gap-3">
+          {profilePreview && <img src={profilePreview} alt="Profile preview" className="size-16 rounded-full object-cover" />}
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setProfilePhoto(file);
+                setProfilePreview(URL.createObjectURL(file));
+              }
+              e.target.value = "";
+            }}
+          />
+        </div>
+      </Field>
+
+      <Field label="Art gallery photos (from your device)">
+        <div className="space-y-3">
+          <Input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => {
+              const files = Array.from(e.target.files ?? []);
+              setGalleryFiles((prev) => [...prev, ...files].slice(0, 8));
+              setGalleryPreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))].slice(0, 8));
+              e.target.value = "";
+            }}
+          />
+          {galleryPreviews.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              {galleryPreviews.map((src, i) => (
+                <div key={i} className="relative">
+                  <img src={src} alt={`Gallery ${i + 1}`} className="size-16 rounded-md object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGalleryFiles((prev) => prev.filter((_, j) => j !== i));
+                      setGalleryPreviews((prev) => prev.filter((_, j) => j !== i));
+                    }}
+                    className="absolute -right-2 -top-2 rounded-full bg-background p-1 text-muted-foreground hover:text-red-400"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Field>
+
+      <div className="rounded-lg border border-gold/25 bg-secondary/40 p-4">
+        <label className="flex items-start gap-3">
+          <Checkbox
+            checked={agreement}
+            onCheckedChange={(v) => setAgreement(v === true)}
+            className="mt-0.5"
+          />
+          <span className="text-xs leading-relaxed text-muted-foreground">
+            I accept the <span className="text-gold font-medium">50/50 profit-split agreement</span> with SAFIA Africa.
+            The company and I will split the net profit from each sale equally (50% each).
+          </span>
+        </label>
+      </div>
+
+      <div className="rounded-lg border border-border bg-card/30 p-3 text-[11px] text-muted-foreground">
+        After submitting your request, the SAFIA admin team will review your biography and gallery.
+        You will receive an <span className="text-foreground">email notification</span> telling you whether
+        you have been approved or dismissed. Only approved artisans can sign in.
+      </div>
+
+      <Button type="submit" className="w-full bg-sunset text-primary-foreground" disabled={mut.isPending || uploading || !agreement}>
+        {(mut.isPending || uploading) && <Loader2 className="mr-2 size-4 animate-spin" />}
+        <UserPlus className="mr-2 size-4" /> Submit request
       </Button>
     </form>
   );
@@ -848,8 +985,13 @@ function ProfileTab() {
     facebook: string;
     website: string;
   }>(null);
+  const [profilePreview, setProfilePreview] = useState("");
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [galleryUploads, setGalleryUploads] = useState<{ ref: string; url: string }[]>([]);
+  const [galleryUploading, setGalleryUploading] = useState(false);
 
   const p: any = q.data?.profile;
+  const galleryUrls: string[] = q.data?.galleryUrls ?? [];
   useEffect(() => {
     if (!p || f) return;
     const social = (p.social_links ?? {}) as Record<string, string>;
@@ -864,7 +1006,12 @@ function ProfileTab() {
       facebook: social["facebook"] ?? "",
       website: social["website"] ?? "",
     });
-  }, [p, f]);
+    const existingGalleryPaths: string[] = p.gallery_images ?? [];
+    setGalleryUploads(
+      existingGalleryPaths.map((ref, i) => ({ ref, url: galleryUrls[i] ?? "" })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p]);
 
   const mut = useMutation({
     mutationFn: () =>
@@ -873,6 +1020,7 @@ function ProfileTab() {
           fullName: f!.fullName,
           bio: f!.bio,
           photoUrl: f!.photoUrl,
+          galleryImages: galleryUploads.map((u) => u.ref),
           location: f!.location,
           skills: f!.skills.split(",").map((s) => s.trim()).filter(Boolean),
           yearsExperience: Number(f!.yearsExperience) || 0,
@@ -909,11 +1057,91 @@ function ProfileTab() {
         <Field label="Location"><Input value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="City, Country" /></Field>
         <Field label="Years of experience"><Input type="number" min={0} value={f.yearsExperience} onChange={(e) => setF({ ...f, yearsExperience: e.target.value })} /></Field>
         <Field label="Skills (comma separated)"><Input value={f.skills} onChange={(e) => setF({ ...f, skills: e.target.value })} /></Field>
-        <Field label="Profile photo URL"><Input value={f.photoUrl} onChange={(e) => setF({ ...f, photoUrl: e.target.value })} placeholder="https://…" /></Field>
+
         <Field label="Instagram"><Input value={f.instagram} onChange={(e) => setF({ ...f, instagram: e.target.value })} /></Field>
         <Field label="Facebook"><Input value={f.facebook} onChange={(e) => setF({ ...f, facebook: e.target.value })} /></Field>
         <Field label="Website"><Input value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} /></Field>
       </div>
+
+      <Field label="Profile photo (from your device)">
+        <div className="flex items-center gap-3">
+          {profilePreview && <img src={profilePreview} alt="Profile" className="size-16 rounded-full object-cover" />}
+          <Input
+            type="file"
+            accept="image/*"
+            disabled={photoUploading}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setPhotoUploading(true);
+              try {
+                const base64 = await fileToBase64(file);
+                const res = await artisanUploadProfilePhoto({ data: { fileName: file.name, contentType: file.type || "image/jpeg", base64 } });
+                setF((prev) => (prev ? { ...prev, photoUrl: res.path } : prev));
+                setProfilePreview(res.url ?? URL.createObjectURL(file));
+                toast.success("Profile photo uploaded");
+              } catch (err) {
+                toast.error((err as Error).message);
+              } finally {
+                setPhotoUploading(false);
+              }
+              e.target.value = "";
+            }}
+          />
+          {photoUploading && <Loader2 className="size-4 animate-spin text-gold" />}
+        </div>
+      </Field>
+
+      <Field label="Art gallery photos (from your device)">
+        <div className="space-y-3">
+          <Input
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={galleryUploading}
+            onChange={async (e) => {
+              const files = Array.from(e.target.files ?? []).slice(0, 8);
+              if (!files.length) return;
+              setGalleryUploading(true);
+              try {
+                for (const file of files) {
+                  const base64 = await fileToBase64(file);
+                  const res = await artisanUploadGalleryImage({ data: { fileName: file.name, contentType: file.type || "image/jpeg", base64 } });
+                  setGalleryUploads((prev) => [...prev, { ref: res.path, url: res.url ?? URL.createObjectURL(file) }]);
+                }
+                toast.success("Gallery photos uploaded");
+              } catch (err) {
+                toast.error((err as Error).message);
+              } finally {
+                setGalleryUploading(false);
+              }
+              e.target.value = "";
+            }}
+          />
+          {galleryUploading && <p className="flex items-center gap-2 text-[11px] text-muted-foreground"><Loader2 className="size-3.5 animate-spin" /> Uploading…</p>}
+          {galleryUploads.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              {galleryUploads.map((u) => (
+                <div key={u.ref} className="relative">
+                  {u.url ? (
+                    <img src={u.url} alt="Gallery" className="size-16 rounded-md object-cover" />
+                  ) : (
+                    <div className="flex size-16 items-center justify-center rounded-md bg-secondary"><ImageIcon className="size-4 text-muted-foreground" /></div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setGalleryUploads((prev) => prev.filter((x) => x.ref !== u.ref))}
+                    className="absolute -right-2 -top-2 rounded-full bg-background p-1 text-muted-foreground hover:text-red-400"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Field>
+
       <Field label="Biography"><Textarea rows={4} value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} /></Field>
       <Button type="submit" className="bg-sunset text-primary-foreground" disabled={mut.isPending}>
         {mut.isPending && <Loader2 className="mr-2 size-4 animate-spin" />} Save profile
