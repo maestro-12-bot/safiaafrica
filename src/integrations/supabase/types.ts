@@ -81,12 +81,14 @@ export type Database = {
       }
       artisans: {
         Row: {
+          agreement_accepted: boolean | null
           auth_user_id: string | null
           bio: string | null
           created_at: string | null
           email: string
           featured: boolean | null
           full_name: string
+          gallery_images: string[] | null
           id: string
           location: string | null
           password_hash: string | null
@@ -100,12 +102,14 @@ export type Database = {
           years_experience: number | null
         }
         Insert: {
+          agreement_accepted?: boolean | null
           auth_user_id?: string | null
           bio?: string | null
           created_at?: string | null
           email: string
           featured?: boolean | null
           full_name: string
+          gallery_images?: string[] | null
           id?: string
           location?: string | null
           password_hash?: string | null
@@ -119,12 +123,14 @@ export type Database = {
           years_experience?: number | null
         }
         Update: {
+          agreement_accepted?: boolean | null
           auth_user_id?: string | null
           bio?: string | null
           created_at?: string | null
           email?: string
           featured?: boolean | null
           full_name?: string
+          gallery_images?: string[] | null
           id?: string
           location?: string | null
           password_hash?: string | null
@@ -209,8 +215,11 @@ export type Database = {
           id: string
           material: string | null
           notes: string | null
+          order_code: string | null
           order_number: string
           orientation: string | null
+          payment_method: string | null
+          payment_plan: string | null
           phone: string
           postal_code: string | null
           product_name: string
@@ -218,6 +227,7 @@ export type Database = {
           quantity: number
           shipping: number
           size_code: string
+          source: string | null
           status: string
           subtotal: number
           tax: number
@@ -243,8 +253,11 @@ export type Database = {
           id?: string
           material?: string | null
           notes?: string | null
+          order_code?: string | null
           order_number: string
           orientation?: string | null
+          payment_method?: string | null
+          payment_plan?: string | null
           phone: string
           postal_code?: string | null
           product_name: string
@@ -252,6 +265,7 @@ export type Database = {
           quantity?: number
           shipping?: number
           size_code: string
+          source?: string | null
           status?: string
           subtotal?: number
           tax?: number
@@ -277,8 +291,11 @@ export type Database = {
           id?: string
           material?: string | null
           notes?: string | null
+          order_code?: string | null
           order_number?: string
           orientation?: string | null
+          payment_method?: string | null
+          payment_plan?: string | null
           phone?: string
           postal_code?: string | null
           product_name?: string
@@ -286,6 +303,7 @@ export type Database = {
           quantity?: number
           shipping?: number
           size_code?: string
+          source?: string | null
           status?: string
           subtotal?: number
           tax?: number
