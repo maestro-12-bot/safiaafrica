@@ -22,6 +22,7 @@ import { Route as OrderRouteImport } from './routes/order'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as CountriesIndexRouteImport } from './routes/countries.index'
 import { Route as CountriesCodeRouteImport } from './routes/countries.$code'
+import { Route as PortalsArtisanRouteImport } from './routes/portals.artisan'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -88,6 +89,11 @@ const CountriesCodeRoute = CountriesCodeRouteImport.update({
   path: '/countries/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalsArtisanRoute = PortalsArtisanRouteImport.update({
+  id: '/portals/artisan',
+  path: '/portals/artisan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/order': typeof OrderRoute
   '/track': typeof TrackRoute
   '/countries/$code': typeof CountriesCodeRoute
+  '/portals/artisan': typeof PortalsArtisanRoute
   '/countries/': typeof CountriesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/order': typeof OrderRoute
   '/track': typeof TrackRoute
   '/countries/$code': typeof CountriesCodeRoute
+  '/portals/artisan': typeof PortalsArtisanRoute
   '/countries': typeof CountriesIndexRoute
 }
 export interface FileRoutesById {
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/order': typeof OrderRoute
   '/track': typeof TrackRoute
   '/countries/$code': typeof CountriesCodeRoute
+  '/portals/artisan': typeof PortalsArtisanRoute
   '/countries/': typeof CountriesIndexRoute
 }
 export interface FileRouteTypes {
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/order'
     | '/track'
     | '/countries/$code'
+    | '/portals/artisan'
     | '/countries/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/order'
     | '/track'
     | '/countries/$code'
+    | '/portals/artisan'
     | '/countries'
   id:
     | '__root__'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/order'
     | '/track'
     | '/countries/$code'
+    | '/portals/artisan'
     | '/countries/'
   fileRoutesById: FileRoutesById
 }
@@ -196,6 +208,7 @@ export interface RootRouteChildren {
   OrderRoute: typeof OrderRoute
   TrackRoute: typeof TrackRoute
   CountriesCodeRoute: typeof CountriesCodeRoute
+  PortalsArtisanRoute: typeof PortalsArtisanRoute
   CountriesIndexRoute: typeof CountriesIndexRoute
 }
 
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CountriesCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portals/artisan': {
+      id: '/portals/artisan'
+      path: '/portals/artisan'
+      fullPath: '/portals/artisan'
+      preLoaderRoute: typeof PortalsArtisanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -308,6 +328,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrderRoute: OrderRoute,
   TrackRoute: TrackRoute,
   CountriesCodeRoute: CountriesCodeRoute,
+  PortalsArtisanRoute: PortalsArtisanRoute,
   CountriesIndexRoute: CountriesIndexRoute,
 }
 export const routeTree = rootRouteImport
